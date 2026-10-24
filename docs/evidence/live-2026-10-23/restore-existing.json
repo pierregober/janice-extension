@@ -1,0 +1,132 @@
+{
+  "scenario": "restore-existing",
+  "describe": "Shopper already applied AFF15; only the made-up code is tried; AFF15 must be put back",
+  "startedAt": "2026-10-23T08:50:19.298Z",
+  "browser": "Chrome for Testing 153.0.8010.12",
+  "item": "Glass Topper Cocktail Smoker Set, $159.99 when inspected",
+  "sharedCart": true,
+  "cart": {
+    "addStatus": 200,
+    "currency": "USD",
+    "itemCount": 1,
+    "totalMinor": 15999,
+    "titles": [
+      "Glass Topper Cocktail Smoker Set"
+    ]
+  },
+  "before": {
+    "rows": [
+      [
+        "Subtotal",
+        "$159.99"
+      ],
+      [
+        "Order discount",
+        ""
+      ],
+      [
+        "AFF15",
+        "− $15.00"
+      ],
+      [
+        "Shipping",
+        "Enter shipping address"
+      ],
+      [
+        "Total",
+        "$144.99"
+      ],
+      [
+        "TOTAL SAVINGS$15.00",
+        ""
+      ]
+    ],
+    "codes": [
+      "AFF15"
+    ],
+    "url": "/checkouts/cn/<token>/en-us"
+  },
+  "popupBefore": {
+    "status": "Ready to try 1 coupon: JANICETEST0.",
+    "details": "Now: AFF15 · total $144.99 (USD)\nJANICETEST0: “Made-up code used only by scripts/live-check.js to observe a real rejection” The checkout decides whether it applies.\nNothing changes until you click Try coupons."
+  },
+  "pageUnchangedByPopup": true,
+  "panel": {
+    "status": "Code not accepted",
+    "result": "Code not accepted JANICETEST0 was not accepted: “Enter a valid discount code or gift card”.No savings claimed.Your original coupon state is back: AFF15 · total $144.99 (checked).",
+    "baseline": "Before testing: AFF15 · total $144.99",
+    "isDemo": false,
+    "isStoppable": false,
+    "isDone": true
+  },
+  "run": {
+    "baseline": {
+      "codes": [
+        "AFF15"
+      ],
+      "total": {
+        "amountMinor": 14499,
+        "basis": "order-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      }
+    },
+    "attempts": [
+      {
+        "code": "JANICETEST0",
+        "outcome": "rejected",
+        "storeMessage": "Enter a valid discount code or gift card",
+        "total": null
+      }
+    ],
+    "result": {
+      "codes": [
+        "AFF15"
+      ],
+      "finalTotal": {
+        "amountMinor": 14499,
+        "basis": "order-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      },
+      "kind": "rejected",
+      "restoration": "verified"
+    }
+  },
+  "after": {
+    "rows": [
+      [
+        "Subtotal",
+        "$159.99"
+      ],
+      [
+        "Order discount",
+        ""
+      ],
+      [
+        "AFF15",
+        "− $15.00"
+      ],
+      [
+        "Shipping",
+        "Enter shipping address"
+      ],
+      [
+        "Total",
+        "$144.99"
+      ],
+      [
+        "TOTAL SAVINGS$15.00",
+        ""
+      ]
+    ],
+    "codes": [
+      "AFF15"
+    ],
+    "url": "/checkouts/cn/<token>/en-us"
+  },
+  "popupAfter": "Code not accepted",
+  "finishedAt": "2026-10-23T08:50:33.215Z"
+}

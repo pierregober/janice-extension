@@ -1,0 +1,7 @@
+Implement the first version of the Janice coupon extension in this janice-extension repository. Read AGENTS.md, START_HERE.md, docs/PRODUCT_PLAN.md, docs/ACCEPTANCE.md, docs/CHECKOUT_NOTES.md, and data/mock-coupons.json before editing.
+
+Build a Chrome Manifest V3 extension for the real U.S. Sharper Image checkout, using local mock coupon data for AFF15: $15 off an order when spending $150 or more. Inspect and document the actual checkout rather than guessing selectors. Start testing only when I click “Try coupons.” Use the current Editable defaults table in docs/PRODUCT_PLAN.md as the source of truth for the name, interface, and final coupon action, including any edits I have made. Preserve a better existing discount and support stopping a run.
+
+Use actual checkout responses and comparable totals to determine acceptance and savings; the mock offer is candidate data, not a guaranteed result. Keep a replaceable coupon-provider interface. Include meaningful fixture tests and verify the unpacked extension in Chrome on the real checkout where accessible. Never submit an order or operate payment submission.
+
+Proceed through implementation and testing using the documented defaults. Preserve existing project metadata and unrelated files. Deliver the runnable extension, loading instructions, test results, and updated checkout notes. Clearly identify any live behavior you could not verify. Defer real APIs, backend, other stores, accounts, stacking, affiliate features, and public release.

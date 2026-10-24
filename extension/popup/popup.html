@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Janice Coupons</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup" aria-labelledby="title">
+      <header class="brand">
+        <span id="logo" class="logo-slot"></span>
+        <h1 id="title">Janice Coupons</h1>
+        <span id="demo" class="demo" hidden title="Simulated checkout: results do not reflect a real store">Demo</span>
+      </header>
+
+      <div class="content">
+        <section id="store" class="store" aria-label="Store" hidden>
+          <span id="store-mark" class="store-mark" aria-hidden="true"></span>
+          <div class="store-text">
+            <p id="store-name" class="store-name"></p>
+            <p id="store-meta" class="store-meta"></p>
+          </div>
+          <span id="count" class="count" hidden></span>
+        </section>
+
+        <section id="hero" class="hero">
+          <div id="figure" class="figure" aria-hidden="true" hidden></div>
+          <p id="kicker" class="kicker" hidden></p>
+          <p id="status" class="status" role="status" aria-live="polite">Checking this page…</p>
+          <p id="sub" class="sub" hidden></p>
+          <div id="progress" class="progress" role="progressbar" aria-label="Testing progress" hidden><span></span></div>
+        </section>
+
+        <ul id="coupons" class="coupons" aria-label="Coupons" hidden></ul>
+        <ul id="details" class="details" hidden></ul>
+
+        <div class="actions">
+          <button id="try" type="button" class="primary" hidden>Try coupons</button>
+          <button id="stop" type="button" class="secondary" hidden>Stop</button>
+          <a id="shop" class="secondary" href="https://sharperimage.com/" target="_blank" rel="noreferrer" hidden>Go to Sharper Image</a>
+        </div>
+        <p id="hint" class="hint" hidden></p>
+        <p id="note" class="note" hidden></p>
+        <p id="announce" class="visually-hidden" aria-live="polite"></p>
+      </div>
+
+      <footer class="foot">
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M8 1 2.5 3v4.3c0 3.4 2.3 6.4 5.5 7.7 3.2-1.3 5.5-4.3 5.5-7.7V3L8 1Zm-1 9.6L4.6 8.2l1-1L7 8.6l3.4-3.4 1 1L7 10.6Z" />
+        </svg>
+        Never touches payment details or places orders.
+      </footer>
+    </main>
+    <script src="../shared/money.js"></script>
+    <script src="../shared/messages.js"></script>
+    <script src="../shared/icons.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

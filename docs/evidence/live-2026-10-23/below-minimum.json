@@ -1,0 +1,130 @@
+{
+  "scenario": "below-minimum",
+  "describe": "AFF15 on a $149.99 cart; the store decides, not the advertised minimum",
+  "startedAt": "2026-10-23T08:37:27.653Z",
+  "browser": "Chrome for Testing 153.0.8010.12",
+  "item": "Acrylic Poker set with 200 Casino Grade Chips, $149.99 when inspected",
+  "cart": {
+    "addStatus": 200,
+    "currency": "USD",
+    "itemCount": 1,
+    "totalMinor": 14999,
+    "titles": [
+      "Acrylic Poker set with 200 Casino Grade Chips"
+    ]
+  },
+  "before": {
+    "rows": [
+      [
+        "Subtotal",
+        "$149.99"
+      ],
+      [
+        "Shipping",
+        "Enter shipping address"
+      ],
+      [
+        "Total",
+        "$149.99"
+      ]
+    ],
+    "codes": [],
+    "url": "/checkouts/cn/<token>/en-us"
+  },
+  "popupBefore": {
+    "status": "Ready to try 1 coupon: AFF15.",
+    "details": "Now: no code · total $149.99 (USD)\nAFF15: “Receive $15 Off Your Order when You Spend $150 or More. Enter Coupon Code: AFF15 at Checkout!” The checkout decides whether it applies.\nNothing changes until you click Try coupons."
+  },
+  "pageUnchangedByPopup": true,
+  "panel": {
+    "status": "You save $15.00 with AFF15",
+    "result": "You save $15.00 with AFF15 AFF15 is applied. Total $134.99, was $149.99.Compared on the order total before shipping and taxes are calculated.Savings come from the checkout's own totals.",
+    "baseline": "Before testing: no code · total $149.99",
+    "isDemo": false,
+    "isStoppable": false,
+    "isDone": true
+  },
+  "run": {
+    "baseline": {
+      "codes": [],
+      "total": {
+        "amountMinor": 14999,
+        "basis": "order-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      }
+    },
+    "attempts": [
+      {
+        "code": "AFF15",
+        "outcome": "accepted",
+        "storeMessage": "Discount code AFF15 has been applied Updated total price: 134.99 US dollars",
+        "total": {
+          "amountMinor": 13499,
+          "basis": "order-total",
+          "currency": "USD",
+          "shippingIncluded": false,
+          "taxIncluded": false
+        }
+      }
+    ],
+    "result": {
+      "baselineTotal": {
+        "amountMinor": 14999,
+        "basis": "order-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      },
+      "code": "AFF15",
+      "codes": [
+        "AFF15"
+      ],
+      "finalTotal": {
+        "amountMinor": 13499,
+        "basis": "order-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      },
+      "kind": "better",
+      "restoration": "not-needed",
+      "savingsMinor": 1500
+    }
+  },
+  "after": {
+    "rows": [
+      [
+        "Subtotal",
+        "$149.99"
+      ],
+      [
+        "Order discount",
+        ""
+      ],
+      [
+        "AFF15",
+        "− $15.00"
+      ],
+      [
+        "Shipping",
+        "Enter shipping address"
+      ],
+      [
+        "Total",
+        "$134.99"
+      ],
+      [
+        "TOTAL SAVINGS$15.00",
+        ""
+      ]
+    ],
+    "codes": [
+      "AFF15"
+    ],
+    "url": "/checkouts/cn/<token>/en-us"
+  },
+  "popupAfter": "You save $15.00 with AFF15",
+  "finishedAt": "2026-10-23T08:37:39.185Z"
+}

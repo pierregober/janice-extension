@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Marks this page as Janice's Demo fixture simulating the named store (localhost only). -->
+    <meta name="janice-demo-checkout" content="sharper-image-us" />
+    <title>DEMO checkout (simulated) · Janice Coupons fixture</title>
+    <link rel="stylesheet" href="demo-checkout.css" />
+  </head>
+  <body>
+    <div class="demo-banner" role="note">
+      <strong>DEMO CHECKOUT</strong> — simulated for testing Janice Coupons. Not a real store; nothing is sold, and
+      Janice labels every result here <strong>Demo</strong>.
+    </div>
+    <nav class="scenarios" aria-label="Demo scenarios">
+      <span>Scenarios:</span>
+      <a href="?spend=14999">$149.99</a>
+      <a href="?spend=15000">$150.00</a>
+      <a href="?spend=20000">$200.00</a>
+      <a href="?spend=20000&amp;mode=reject-all">Explicit rejection</a>
+      <a href="?spend=20000&amp;existing=SAVE20">Existing $20 code</a>
+      <a href="?spend=20000&amp;existing=TAKE15">Tie</a>
+      <a href="?spend=20000&amp;delay=4000">Slow (try Stop)</a>
+      <a href="?spend=20000&amp;failures=cart-change-on-apply">Cart changes</a>
+      <a href="?spend=20000&amp;failures=missing-controls">Missing controls</a>
+      <a href="?spend=20000&amp;failures=unreadable-total">Unreadable total</a>
+      <a href="?spend=20000&amp;failures=never-settle-apply&amp;timeoutHint=1">Never settles</a>
+      <a href="?spend=20000&amp;existing=SAVE20&amp;failures=restore-rejected">Restore fails</a>
+      <a href="?spend=20000&amp;layout=collapsed">Collapsed summary</a>
+    </nav>
+    <div class="layout">
+      <main id="checkout-main">
+        <h1>Demo Store Checkout</h1>
+        <form id="demo-main-form" class="main-form" novalidate>
+          <h2>Contact</h2>
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="Email" autocomplete="off" />
+          <h2>Payment</h2>
+          <p class="hint">Payment is not simulated. Janice must never press this button.</p>
+          <button id="pay-now" type="submit" aria-label="Pay now">Pay now</button>
+        </form>
+      </main>
+      <div id="demo-summary-root"></div>
+    </div>
+    <div id="demo-live" class="visually-hidden" role="status" aria-live="polite"></div>
+    <script src="demo-checkout.js"></script>
+  </body>
+</html>

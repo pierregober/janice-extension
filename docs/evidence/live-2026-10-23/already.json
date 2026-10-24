@@ -1,0 +1,126 @@
+{
+  "scenario": "already",
+  "describe": "AFF15 already applied by the shopper; nothing new to try",
+  "startedAt": "2026-10-23T08:50:12.095Z",
+  "browser": "Chrome for Testing 153.0.8010.12",
+  "item": "Glass Topper Cocktail Smoker Set, $159.99 when inspected",
+  "sharedCart": true,
+  "cart": {
+    "addStatus": 200,
+    "currency": "USD",
+    "itemCount": 1,
+    "totalMinor": 15999,
+    "titles": [
+      "Glass Topper Cocktail Smoker Set"
+    ]
+  },
+  "before": {
+    "rows": [
+      [
+        "Subtotal",
+        "$159.99"
+      ],
+      [
+        "Order discount",
+        ""
+      ],
+      [
+        "AFF15",
+        "− $15.00"
+      ],
+      [
+        "Shipping",
+        "Enter shipping address"
+      ],
+      [
+        "Total",
+        "$144.99"
+      ],
+      [
+        "TOTAL SAVINGS$15.00",
+        ""
+      ]
+    ],
+    "codes": [
+      "AFF15"
+    ],
+    "url": "/checkouts/cn/<token>/en-us"
+  },
+  "popupBefore": {
+    "status": "Ready to try 1 coupon: AFF15.",
+    "details": "Now: AFF15 · total $144.99 (USD)\nAFF15: “Receive $15 Off Your Order when You Spend $150 or More. Enter Coupon Code: AFF15 at Checkout!” The checkout decides whether it applies.\nNothing changes until you click Try coupons."
+  },
+  "pageUnchangedByPopup": true,
+  "panel": {
+    "status": "Already using the available code",
+    "result": "Already using the available code AFF15 is already applied, so there was nothing new to try.",
+    "baseline": "Before testing: AFF15 · total $144.99",
+    "isDemo": false,
+    "isStoppable": false,
+    "isDone": true
+  },
+  "run": {
+    "baseline": {
+      "codes": [
+        "AFF15"
+      ],
+      "total": {
+        "amountMinor": 14499,
+        "basis": "order-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      }
+    },
+    "attempts": [],
+    "result": {
+      "codes": [
+        "AFF15"
+      ],
+      "finalTotal": {
+        "amountMinor": 14499,
+        "basis": "order-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      },
+      "kind": "no-improvement",
+      "reason": "already-applied",
+      "restoration": "not-needed"
+    }
+  },
+  "after": {
+    "rows": [
+      [
+        "Subtotal",
+        "$159.99"
+      ],
+      [
+        "Order discount",
+        ""
+      ],
+      [
+        "AFF15",
+        "− $15.00"
+      ],
+      [
+        "Shipping",
+        "Enter shipping address"
+      ],
+      [
+        "Total",
+        "$144.99"
+      ],
+      [
+        "TOTAL SAVINGS$15.00",
+        ""
+      ]
+    ],
+    "codes": [
+      "AFF15"
+    ],
+    "url": "/checkouts/cn/<token>/en-us"
+  },
+  "popupAfter": "Already using the available code",
+  "finishedAt": "2026-10-23T08:50:18.911Z"
+}

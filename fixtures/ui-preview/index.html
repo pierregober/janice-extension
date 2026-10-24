@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Janice UI Preview</title>
+    <link rel="icon" href="/extension/icons/icon-32.png" />
+    <link rel="stylesheet" href="preview.css" />
+  </head>
+  <body>
+    <header class="page-head">
+      <div>
+        <h1>Janice Coupons · UI preview</h1>
+        <p>
+          The extension's real popup, page button and checkout panel, fed simulated states. Nothing here talks to a store
+          or needs the extension installed. They are clickable: press <strong>Try coupons</strong>, or <strong>Stop</strong>
+          while it runs. Colors follow your system's light or dark setting.
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <section aria-labelledby="popup-heading">
+        <h2 id="popup-heading">Toolbar popup</h2>
+        <div id="popups" class="gallery"></div>
+      </section>
+      <section aria-labelledby="launcher-heading">
+        <h2 id="launcher-heading">Page button <span>(on the right edge of Sharper Image pages; its card opens on hover or click)</span></h2>
+        <div id="launchers" class="gallery"></div>
+      </section>
+      <section aria-labelledby="panel-heading">
+        <h2 id="panel-heading">Checkout panel <span>(shown in the corner of the checkout during and after a run)</span></h2>
+        <div id="panels" class="gallery"></div>
+      </section>
+    </main>
+
+    <script src="preview.js"></script>
+  </body>
+</html>

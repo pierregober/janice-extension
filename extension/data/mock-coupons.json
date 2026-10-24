@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "provider": {
+    "id": "local-mock",
+    "kind": "bundled-mock-data"
+  },
+  "stores": [
+    {
+      "id": "sharper-image-us",
+      "name": "Sharper Image",
+      "storefrontUrl": "https://sharperimage.com/",
+      "country": "US",
+      "targetCurrency": "USD",
+      "checkoutIntegrationStatus": "not-inspected"
+    }
+  ],
+  "coupons": [
+    {
+      "id": "sharper-image-aff15",
+      "storeId": "sharper-image-us",
+      "code": "AFF15",
+      "offerText": "Receive $15 Off Your Order when You Spend $150 or More. Enter Coupon Code: AFF15 at Checkout!",
+      "advertisedDiscount": {
+        "type": "fixed-order-discount",
+        "amountMinor": 1500,
+        "currency": "USD"
+      },
+      "advertisedMinimumSpend": {
+        "amountMinor": 15000,
+        "currency": "USD",
+        "inclusive": true,
+        "basis": null
+      },
+      "currencyBasis": "USD is the U.S. project target; confirm live checkout currency",
+      "expiresAt": null,
+      "restrictions": null,
+      "stackingAllowed": null,
+      "affiliateStatus": null,
+      "source": {
+        "kind": "user-provided-offer",
+        "recordedOn": "2026-10-14"
+      },
+      "liveValidation": {
+        "status": "not-tested",
+        "observedAt": null
+      }
+    }
+  ]
+}

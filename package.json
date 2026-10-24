@@ -1,0 +1,32 @@
+{
+  "name": "janice-extension",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/pierregober/janice-extension#readme",
+  "bugs": {
+    "url": "https://github.com/pierregober/janice-extension/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pierregober/janice-extension.git"
+  },
+  "license": "ISC",
+  "author": "Pierre",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node scripts/build.js --watch",
+    "build": "node scripts/build.js",
+    "test":"node --test \"tests/*.test.js\"",
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.js\"",
+    "check:live": "node scripts/live-check.js",
+    "demo": "node scripts/serve-fixtures.js",
+    "sync:data": "node scripts/sync-data.js",
+    "icons": "node scripts/make-icons.js",
+    "package": "node scripts/package.js"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1",
+    "playwright": "1.63.0"
+  }
+}
