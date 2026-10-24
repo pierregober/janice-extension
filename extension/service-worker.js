@@ -4,19 +4,25 @@
  * used on (activeTab) or whose page button was opened (host access to
  * sharperimage.com), hands the run its coupon candidates, relays Stop, and
  * keeps each tab's latest run state in chrome.storage.session so the popup
- * can show it after reopening. It holds nothing it needs between events:
- * Chrome may stop it at any time.
+ * can show it after reopening. It also opens the settings page for Go to
+ * settings in the page button's menu, which a content script cannot open. It
+ * holds nothing it needs between events: Chrome may stop it at any time.
  */
-importScripts('providers/coupon-provider.js', 'providers/local-mock-provider.js', 'content/stores.js')
+importScripts('providers/coupon-provider.js', 'providers/local-mock-provider.js', 'shared/coupon-candidates.js', 'content/stores.js')
 
 const CONTENT_SCRIPTS = [
   'shared/money.js',
   'shared/compare.js',
   'shared/messages.js',
   'shared/icons.js',
+  'shared/coupon-candidates.js',
   'content/dom.js',
+  'content/coupon-entry.js',
   'content/adapters/sharper-image.js',
+  'content/adapters/sharper-image-drawer.js',
+  'content/shopify.js',
   'content/stores.js',
+  'content/checkout-discovery.js',
   'content/run-controller.js',
   'content/panel.js',
   'content/main.js',
@@ -42,18 +48,26 @@ const tabOf = (message, sender) => (sender.url?.startsWith(chrome.runtime.getURL
 
 const handlers = {
   'janice:inspect': (message, sender) => inspect(tabOf(message, sender)),
-  'janice:try': (message, sender) => tryCoupons(tabOf(message, sender)),
+  'janice:try': (message, sender) => tryCoupons(tabOf(message, sender), message.additionalCodes),
   'janice:stop': (message, sender) => chrome.tabs.sendMessage(tabOf(message, sender), { type: 'janice:stop' }),
   'janice:run-update': ({ run }, sender) => saveRun(sender.tab?.id, run),
+  'janice:open-settings': async () => {
+    await chrome.runtime.openOptionsPage()
+    return { ok: true }
+  },
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handler = sender.id === chrome.runtime.id && handlers[message?.type]
   if (!handler) return false
-  handler(message, sender).then(sendResponse, error =>
-    sendResponse({ ok: false, reason: 'error', detail: String(error?.message ?? error) }),
-  )
-  return true
+  ;(async () => {
+    try {
+      sendResponse(await handler(message, sender))
+    } catch (error) {
+      sendResponse({ ok: false, reason: 'error', detail: String(error?.message ?? error) })
+    }
+  })()
+  return true // The answer comes once the handler settles.
 })
 
 // The tab's host, readable on sharperimage.com or once the toolbar button granted activeTab; null when not.
@@ -126,7 +140,7 @@ async function inspect(tabId) {
 }
 
 /** Starts a run in the tab: the shopper's Try coupons click, in the popup or the page button's card. */
-async function tryCoupons(tabId) {
+async function tryCoupons(tabId, additionalCodes = '') {
   if (starting.has(tabId)) return { ok: false, reason: 'already-starting' }
   starting.add(tabId)
   try {
@@ -135,10 +149,17 @@ async function tryCoupons(tabId) {
     await ensureContent(tabId)
     const detection = await chrome.tabs.sendMessage(tabId, { type: 'janice:detect' })
     if (detection.run && ACTIVE.has(detection.run.status)) return { ok: false, reason: 'already-running', run: detection.run }
-    if (!detection.store || detection.store.page !== 'checkout') return { ok: false, reason: 'not-checkout' }
+    if (!detection.store) return { ok: false, reason: 'not-checkout' }
+    if (!detection.supported) return { ok: false, reason: detection.reason === 'unverified-checkout' ? 'unverified-checkout' : 'unsupported-checkout' }
 
     const { candidates, providerError } = await candidatesFor(detection.store.id)
-    return await chrome.tabs.sendMessage(tabId, { type: 'janice:start', candidates, providerError })
+    let batch
+    try {
+      batch = Janice.couponCandidates.mergeCandidates(candidates, additionalCodes)
+    } catch (error) {
+      return { ok: false, reason: 'invalid-codes', detail: error.message }
+    }
+    return await chrome.tabs.sendMessage(tabId, { type: 'janice:start', candidates: batch, providerError })
   } finally {
     starting.delete(tabId)
   }
@@ -149,10 +170,18 @@ async function loadRun(tabId) {
   return (await chrome.storage.session.get(key))[key] ?? null
 }
 
-function saveRun(tabId, run) {
-  if (tabId === undefined || !run) return Promise.resolve({ ok: false })
-  const queued = (writes.get(tabId) ?? Promise.resolve()).then(() => writeRun(tabId, run))
-  writes.set(tabId, queued.catch(() => {}))
+async function saveRun(tabId, run) {
+  if (tabId === undefined || !run) return { ok: false }
+  const previous = writes.get(tabId)
+  const queued = (async () => {
+    try {
+      await previous
+    } catch {
+      // A failed earlier write does not hold this one back.
+    }
+    return writeRun(tabId, run)
+  })()
+  writes.set(tabId, queued)
   return queued
 }
 
@@ -160,22 +189,32 @@ async function writeRun(tabId, run) {
   const previous = await loadRun(tabId)
   if (previous && previous.runId === run.runId && previous.updatedAt > run.updatedAt) return { ok: true }
   await chrome.storage.session.set({ [runKey(tabId)]: run })
-  await chrome.action
-    .setBadgeText({ tabId, text: ACTIVE.has(run.status) ? '…' : run.result?.kind === 'interrupted' ? '!' : '' })
-    .catch(() => {}) // The tab may have closed meanwhile.
+  try {
+    await chrome.action.setBadgeText({ tabId, text: ACTIVE.has(run.status) ? '…' : run.result?.kind === 'interrupted' ? '!' : '' })
+  } catch {
+    // The tab may have closed meanwhile.
+  }
   return { ok: true }
 }
 
 // A navigation or reload in a tab ends any run in it.
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (changeInfo.status !== 'loading') return
-  const run = await loadRun(tabId)
-  if (run && ACTIVE.has(run.status)) await saveRun(tabId, interrupted(run))
+  try {
+    const run = await loadRun(tabId)
+    if (run && ACTIVE.has(run.status)) await saveRun(tabId, interrupted(run))
+  } catch {
+    // Session storage failed; the popup reports the stored run as it finds it.
+  }
 })
 
-chrome.tabs.onRemoved.addListener(tabId => {
+chrome.tabs.onRemoved.addListener(async tabId => {
   writes.delete(tabId)
-  void chrome.storage.session.remove(runKey(tabId))
+  try {
+    await chrome.storage.session.remove(runKey(tabId))
+  } catch {
+    // Session storage is cleared when the browser closes anyway.
+  }
 })
 
 chrome.runtime.onInstalled.addListener(() => {

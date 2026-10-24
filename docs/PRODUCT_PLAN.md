@@ -22,20 +22,38 @@ The planning target is the official [Sharper Image storefront](https://sharperim
 
 ## Editable defaults
 
+**October 23, 2026 update:** at the owner's request, Janice now discovers likely promo fields as the page changes
+and offers a non-modal overlay for serial batches. Shoppers can add their own codes to the provider's AFF15
+candidate in the card or popup. Field discovery is read-only and reusable; a field match alone does not authorize
+generic form submission or establish support for another checkout. Testing remains scoped to Sharper Image;
+the separate Shopify checkout recognizer leaves unverified `shop.app` checkouts read-only.
+
+**Cart field update (October 24, 2026):** the owner requested a less intrusive signal for Shopify cart
+drawers: a rainbow outline around the promo input with a small **Use code** button, replacing the floating
+reminder. The outline uses the live usejanice.com hero border palette. At the owner's later request, its
+colors now circulate around the fixed outline, and each corner follows the input's actual border radius.
+Reduced-motion and forced-color modes use a static outline.
+
+**Apply-and-iterate update (October 24, 2026):** the owner explicitly requested native Apply testing and
+iteration over valid/invalid candidates from the small control. The inspected Sharper Image drawer now uses
+the existing serial runner, with animated typing, native Apply/Remove, authoritative same-origin cart reads,
+and compact progress/Stop/results rather than a large panel.
+
 Use these defaults unless the owner changes them. They are implementation choices, not additional confirmed user selections. This table is the single source of truth for editable defaults across the handoff; an edit here overrides older default summaries elsewhere in the package. The user's latest direct instructions take precedence.
 
 | Choice | Default |
 | --- | --- |
 | Working product name | Janice Coupons |
-| Start interface | Toolbar popup with **Try coupons**, plus a button on the right edge of sharperimage.com pages whose card, opened on hover or click, shows how many coupons were found and offers **Try coupons** at checkout (**Go to checkout** elsewhere). At the owner's request (October 23, 2026); it needs host access to sharperimage.com, the verified checkout origin. The card never opens by itself, and testing still starts only with **Try coupons**. |
-| Progress and results | Small checkout panel with progress, **Stop**, and outcome |
+| Cart field assist | Outline a visible supported drawer promo field with the moving rainbow and show a small **Use code** button. Its explicit click starts the same bounded serial coupon runner: animate candidate typing, click the verified native Apply, await fresh accepted/rejected UI plus consistent `/cart.js` state, and keep only the best verified improvement. The button becomes **Stop** during testing; progress and outcomes stay beside the field. Preserve original applied discounts and safely restore the original field draft. Field detection alone never starts testing. The rainbow follows each corner radius and stays static for reduced motion/forced colors. Latest explicit owner request, October 24, 2026. |
+| Start interface | Toolbar popup with **Try coupons**, plus a button on the right edge of sharperimage.com pages whose card, opened on hover or click, shows how many coupons were found and offers **Try coupons** at checkout or in the verified Sharper Image cart drawer (**Go to checkout** elsewhere). At the owner's request (October 23, 2026); it needs host access to sharperimage.com, the verified checkout origin. The card never opens by itself. Testing starts only with an explicit **Try coupons** or drawer **Use code** click. The shopper can slide the button along the edge, by dragging it or with the arrow keys, and it keeps that spot (owner request, October 24, 2026). Shoppers signed in to Shop get the checkout on shop.app. There the button and popup recognize the Sharper Image checkout by its Shopify shop ID, which needs host access to shop.app, but offer no Try coupons until a supervised run verifies the store's responses there (owner request, October 24, 2026). On product pages the card shows **tips**, laid out like Honey's tips panel: the product, the coupon count, a price trend from prices seen on this device, Watch for price drops, Save and Rate this tip. Everything stays on the device. Rewards and background price alerts are not built (owner request, October 24, 2026). The gear in the card's header opens a menu: Hide on this page, Snooze for 24 hours (every store), Snooze on this site (until turned back on) and Go to settings, a settings page in its own tab. The toolbar popup says when the button is snoozed on the store, with Show it again; the popup's gear opens the settings too (owner request, October 24, 2026). |
+| Progress and results | Compact input-attached progress/Stop/result for cart-drawer runs; the existing non-modal progress panel at checkout. Both run independently of the popup and report real store outcomes. |
 | Final coupon action | Leave the best verified coupon applied |
-| Candidate testing | One code at a time; no stacking |
+| Candidate testing | One code at a time; no stacking. Merge local provider candidates with optional shopper-entered codes, deduplicate without regard to case, cap the combined batch at 20 codes (64 characters each), and retain the two-minute run deadline. Shopper codes have no invented offer terms. |
 | Existing discounts | Keep the original discount unless a tested candidate lowers the comparable amount; keep original on ties |
 | Distribution | Unpacked extension for local testing, built with `npm start` or `npm run build` into `build/` and loaded with **Load unpacked**, like common extension boilerplates (at the owner's request, October 23, 2026). While `npm start` runs, its development build reloads itself in Chrome after each change (also at the owner's request); `npm run build` is the plain extension. |
 | Accounts and backend | None in this version |
 | Currency target | USD; verify the actual checkout currency |
-| Look and feel | Honey-like, at the owner's request (October 23, 2026): a branded popup with the store, a card per coupon (with **Copy**) and a large **Try coupons** button; the checkout panel shows the code being tried, a progress bar, and verified savings in large type. Accessible, with Janice's own name, colors and icon (no Honey branding). |
+| Look and feel | Honey-like, at the owner's request (October 23, 2026): a branded popup with the store, a card per coupon (with **Copy**) and a large **Try coupons** button; the checkout panel shows the code being tried, a progress bar, and verified savings in large type. Accessible, with Janice's own name and colors (no Honey branding). Use the purple seal favicon from usejanice.com for the popup, coupon card, page button and progress header (owner request, October 24, 2026); bundle its vector data for offline rendering. |
 
 If the final-action default is changed to **Show result, then Apply**, restore and verify the original coupon state after testing, then reapply and verify the selected code only when the shopper clicks **Apply**. Do not silently leave a test coupon applied in that mode.
 
@@ -51,7 +69,9 @@ Use `data/mock-coupons.json` as the first local provider dataset.
 - Expiry, exclusions, stacking rules, and whether minimum spend includes tax/shipping: unknown.
 - Country: United States, selected by the user.
 - Currency fields use the project's USD target; live currency must be checked.
-- Live validity: not tested. Do not infer an affiliate relationship from the code's name.
+- Live validity: AFF15 was accepted in the recorded guest-checkout runs, most recently the batch-overlay run
+  at 2026-10-24 05:39 UTC. This is historical evidence, not a promise for the shopper's current cart.
+  Do not infer an affiliate relationship from the code's name.
 
 These fields describe a candidate offer. The live store decides applicability. Do not skip the code because of an assumed minimum-spend calculation, force acceptance, or calculate claimed live savings by subtracting the advertised $15.
 
@@ -62,6 +82,8 @@ The mock provider returns this candidate for the Sharper Image store identifier 
 1. Shopper reaches the real Sharper Image checkout and opens the extension.
 2. Popup identifies the store and reports whether the current checkout can be tested.
 3. Shopper clicks **Try coupons**. Merely opening the popup does not change checkout.
+   Before clicking, they may expand **Add your own codes** and paste additional candidates. Invalid or oversized
+   batches are refused before checkout changes, in both the interface and the service worker.
 4. Extension reads the local candidates and captures the current coupon state, comparable amount, currency, and cart identity.
 5. Checkout panel shows progress and **Stop** while candidates are tested serially.
 6. Store integration enters AFF15 in the actual coupon control, triggers the store's apply action, and waits for a settled result using bounded timeouts.
@@ -83,6 +105,10 @@ Example fixture only: eligible spend $150.00, no tax/shipping, AFF15 accepted â†
 - If the shopper edits the cart, stop and invalidate the old comparison. Do not restore cart contents or treat the old cart total as the current baseline. Restore coupon state only when it can be done without overriding the shopper's intervening edits.
 - If checkout is left or reloaded, interrupt the run and report its state honestly; do not continue mutations on a different page.
 - Permit one active run per tab and guard against rapid repeated clicks.
+- Detect promo fields using field metadata, excluding unrelated/sensitive fields. Keep detection separate from
+  adapter execution support; refresh discovery on DOM updates without opening the card or trying codes.
+- If applied codes change outside the run, stop immediately and preserve the shopper's edits, including changes
+  that arrive during an application, removal or restoration update.
 - Closing the toolbar popup must not abandon an active run. The checkout panel remains usable.
 - Bound waits and attempts; stop when the store blocks further attempts or controls become incompatible.
 - Never place an order, advance payment submission, or fill payment information.
@@ -132,7 +158,7 @@ If live checkout access is unavailable, finish independent code and tests, docum
 
 ## Later scope
 
-Real coupon provider/API, provider credentials/backend if needed, additional stores, stacking, accounts/history, other browsers, automatic prompts, cashback/affiliate monetization, and Chrome Web Store distribution. Preserve a clean provider/adapter boundary now without building these features.
+Real coupon provider/API, provider credentials/backend if needed, additional stores, stacking, accounts/history, other browsers, prompts beyond the cart field assist above, cashback/affiliate monetization, and Chrome Web Store distribution. Preserve a clean provider/adapter boundary now without building these features.
 
 ## Definition of delivery
 

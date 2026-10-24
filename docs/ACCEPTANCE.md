@@ -4,6 +4,27 @@ Updated October 14, 2026. These criteria describe the first implementation miles
 
 ## Shared behavior
 
+Additional batch/overlay criteria (owner request, October 23, 2026):
+
+- [x] Detect likely promo fields from metadata, including dynamically inserted/collapsed controls, without reading
+  their values or changing checkout. A field match does not imply verified automatic testing support.
+- [x] Allow optional shopper codes alongside local provider candidates; deduplicate case-insensitively and reject
+  malformed/oversized batches before mutations. No invented coupon offers or savings.
+- [x] Show a non-modal overlay with progress, cancellation, and each observed coupon outcome; keep checkout usable.
+- [x] Preserve concurrent shopper discount edits, including edits during pending attempts and restoration.
+- [x] Signal a visible Shopify drawer promo field with a thin rainbow outline and a small **Use code**
+  control when provider candidates exist. Keep focus and native field layout unchanged. Test only after an
+  explicit click, type candidates visibly, use the verified native Apply button, read each real outcome, and
+  preserve/restore original coupon and draft state when safe. Hidden,
+  offscreen/collapsed fields and empty candidates stay quiet; no floating reminder/card opens automatically.
+- [x] Animate the colors around the fixed outline, preserving individual input corner radii, including square,
+  pill and elliptical corners. Reduced motion and forced colors disable the decorative animation.
+- [x] Cart-drawer batches use the same one-run-per-tab controller, with Stop, deduplication, bounded waits,
+  native removal between attempts, winner verification, and restoration on no improvement/cancellation.
+  Fresh component replacement and authoritative cart reads prevent stale errors from becoming results.
+
+The original milestone checklist below is retained. See `TEST_REPORT.md` for current verification and limits.
+
 - [ ] Start checkout mutations only after the shopper clicks **Try coupons**.
 - [ ] Load `AFF15` locally through a replaceable coupon-provider interface. Record the user-supplied offer as $15 off when spending $150 or more; unknown expiry/exclusions remain unknown.
 - [ ] Allow one active run per tab. Repeated clicks do not duplicate application attempts or overwrite the original baseline.

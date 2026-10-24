@@ -1,0 +1,134 @@
+{
+  "startedAt": "2026-10-24T06:20:04.947Z",
+  "finishedAt": "2026-10-24T06:20:11.915Z",
+  "browser": "153.0.8010.12",
+  "noCouponMutation": true,
+  "noCheckoutNavigation": true,
+  "open": {
+    "drawer": {
+      "tag": "div",
+      "attrs": {
+        "id": "shopify-section-cart-drawer",
+        "class": "shopify-section cart-drawer js-cart-drawer"
+      },
+      "rect": {
+        "x": 770,
+        "y": 0,
+        "width": 510,
+        "height": 775,
+        "right": 1280,
+        "bottom": 775
+      },
+      "style": {
+        "display": "block",
+        "visibility": "visible",
+        "transform": "none",
+        "opacity": "1"
+      }
+    },
+    "fields": [
+      {
+        "type": "text",
+        "name": "discount_code",
+        "labels": [
+          "Enter code here"
+        ],
+        "visible": true,
+        "rect": {
+          "x": 795,
+          "y": 491.859375,
+          "width": 345,
+          "height": 37,
+          "right": 1140,
+          "bottom": 528.859375
+        }
+      }
+    ],
+    "modal": {
+      "tag": "modal-dialog",
+      "attrs": {
+        "id": "modal-cart",
+        "class": "modal--cart modal modal--right modal--dark",
+        "role": "dialog"
+      },
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900,
+        "right": 1280,
+        "bottom": 900
+      },
+      "style": {
+        "display": "flex",
+        "visibility": "visible",
+        "transform": "none",
+        "opacity": "1"
+      }
+    }
+  },
+  "closed": {
+    "drawer": {
+      "tag": "div",
+      "attrs": {
+        "id": "shopify-section-cart-drawer",
+        "class": "shopify-section cart-drawer js-cart-drawer"
+      },
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "style": {
+        "display": "block",
+        "visibility": "visible",
+        "transform": "none",
+        "opacity": "1"
+      }
+    },
+    "fields": [
+      {
+        "type": "text",
+        "name": "discount_code",
+        "labels": [
+          "Enter code here"
+        ],
+        "visible": false,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        }
+      }
+    ],
+    "modal": {
+      "tag": "modal-dialog",
+      "attrs": {
+        "id": "modal-cart",
+        "class": "modal--cart modal modal--right modal--dark",
+        "role": "dialog",
+        "aria-hidden": "true"
+      },
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "style": {
+        "display": "none",
+        "visibility": "visible",
+        "transform": "none",
+        "opacity": "1"
+      }
+    }
+  }
+}

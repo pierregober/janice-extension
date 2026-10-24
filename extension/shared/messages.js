@@ -11,6 +11,7 @@
 
   const REASONS = {
     'not-checkout': 'Open the Sharper Image checkout page to try coupons.',
+    'unverified-checkout': "Janice recognized the Sharper Image checkout on shop.app, but coupon testing hasn't been verified there yet.",
     'no-discount-field': "The checkout's discount code field wasn't found.",
     'discount-field-hidden': 'The discount code field is hidden. Open the order summary and try again.',
     'no-order-summary': "The checkout's order summary wasn't found.",
@@ -22,6 +23,7 @@
       "A gift card or another reduction is applied that Janice can't safely put back.",
     'multiple-codes': 'More than one discount code is applied; this version can only put back one.',
     'checkout-busy': 'The checkout was still updating.',
+    'cart-unreadable': 'The store’s current cart total or discount state could not be verified.',
     timeout: "The checkout didn't finish updating in time.",
     'apply-disabled': "The checkout's Apply button wasn't available.",
     'no-remove-button': "The checkout's Remove button wasn't found.",
@@ -45,9 +47,11 @@
 
   // Why a Try coupons request did not start a run.
   const START_REFUSALS = {
+    'unsupported-checkout': 'The promo controls or order summary could not be verified here. Nothing was changed.',
     'already-running': 'A run is already in progress on this tab.',
     'already-starting': 'A run is already starting on this tab.',
     'not-checkout': 'Open the Sharper Image checkout page to try coupons.',
+    'unverified-checkout': "Coupon testing hasn't been verified on shop.app yet. Nothing was changed.",
   }
 
   const PHASES = {
@@ -77,6 +81,7 @@
   /** What the compared amount includes, so savings are never overstated. */
   function basisNote(total) {
     if (!total) return ''
+    if (total.basis === 'cart-total') return 'Compared on the cart total before checkout shipping and taxes are calculated.'
     const missing = [!total.shippingIncluded && 'shipping', !total.taxIncluded && 'taxes'].filter(Boolean)
 
     return missing.length
@@ -157,7 +162,7 @@
 
     switch (result.kind) {
       case 'better':
-        add(`${result.code} is applied. Total ${amount(result.finalTotal)}, was ${amount(result.baselineTotal)}.`)
+        add(`${result.code} is applied. ${result.finalTotal?.basis === 'cart-total' ? 'Cart total' : 'Total'} ${amount(result.finalTotal)}, was ${amount(result.baselineTotal)}.`)
         add(basisNote(result.finalTotal))
         add("Savings come from the checkout's own totals.")
         return { title: `You save ${savingsText(run)} with ${result.code}`, lines, tone: 'success' }

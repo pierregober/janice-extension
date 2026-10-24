@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Demo Shopify cart drawer — Janice fixture</title>
+    <link rel="stylesheet" href="cart-drawer.css">
+    <script src="cart-drawer.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <p class="demo">Demo fixture — no real cart or savings</p>
+      <h1>Cart drawer detection</h1>
+      <p>This simulated store tests Janice's coupon runner. All prices and coupon responses below are Demo rules.</p>
+      <button type="button" id="open-cart" aria-controls="shopify-section-cart-drawer" aria-expanded="false">Open cart</button>
+    </main>
+    <section id="shopify-section-cart-drawer" aria-label="Demo shopping cart" aria-hidden="true" inert>
+      <header>
+        <h2>Your cart</h2>
+        <button type="button" id="close-cart">Close cart</button>
+      </header>
+      <p class="demo-item">Demo item × <span class="demo-quantity">1</span></p>
+      <p class="cart__total">Cart total: <cart-total>$200.00</cart-total> <span>USD</span></p>
+      <details class="discount-disclosure" open>
+        <summary>Add discount code</summary>
+        <div class="field-slot"></div>
+      </details>
+      <p class="fixture-note">Demo only. No checkout, payment or order requests are possible here.</p>
+    </section>
+  </body>
+</html>

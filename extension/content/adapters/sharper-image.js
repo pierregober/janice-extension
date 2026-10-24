@@ -1,7 +1,11 @@
 /*
  * Sharper Image store adapter: the Shopify one-page checkout served at
  * https://sharperimage.com/checkouts/cn/<token>/en-us, as inspected live on
- * 2026-10-23 (see docs/CHECKOUT_NOTES.md for the evidence).
+ * 2026-10-23 (see docs/CHECKOUT_NOTES.md for the evidence). Shoppers signed
+ * in to Shop get the same checkout at
+ * https://shop.app/checkout/<shopId>/cn/<token>/en-us/shoppay, with the same
+ * controls (read-only inspection, 2026-10-24); runs stay off there until the
+ * store's responses are verified (content/stores.js).
  *
  * It reads the order summary and operates only the discount-code form, the
  * applied codes' Remove buttons and, in the narrow layout, the "Order
@@ -49,7 +53,8 @@
   const FORBIDDEN_LABEL = /\b(pay now|complete order|place order|submit order|buy now|pay with)\b/i
   // A restorable discount code; anything else (a gift card) cannot be re-entered.
   const CODE_LIKE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
-  const CHECKOUT_PATH = /^\/checkouts\/[^/]+\/([^/?#]+)/
+  // /checkouts/cn/<token>/… on the store's host, /checkout/<shopId>/cn/<token>/… on shop.app.
+  const CHECKOUT_PATH = /^\/(?:checkouts|checkout\/\d+)\/[^/]+\/([^/?#]+)/
 
   function createSharperImageAdapter({ window: win = root, timing = {}, isDemo = false } = {}) {
     const { pollMs = 100, settleMs = 600, timeoutMs = 20000, enableMs = 2500, expandMs = 3000 } = timing

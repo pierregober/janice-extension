@@ -52,6 +52,7 @@ const SCENARIOS = {
   'restore-existing': { item: 'over', describe: 'Shopper already applied AFF15; only the made-up code is tried; AFF15 must be put back', candidates: ['JANICETEST0'], preApply: 'AFF15' },
   already: { item: 'over', describe: 'AFF15 already applied by the shopper; nothing new to try', preApply: 'AFF15' },
   'page-button': { item: 'over', describe: "The page button on a store page and at checkout; Try coupons from its card", launcher: true },
+  'batch-overlay': { item: 'over', describe: 'Detected promo field, shopper-added batch, serial attempts and top-layer overlay', launcher: true, additionalCodes: 'JANICETEST0, aff15' },
 }
 const DEFAULT_SET = ['apply', 'below-minimum', 'stop', 'repeat', 'reopen', 'narrow', 'two-codes', 'restore-existing', 'already']
 
@@ -231,7 +232,18 @@ async function runScenario(name, evidenceDir, sharedProfile) {
     }
 
     if (scenario.launcher) {
+      if (scenario.additionalCodes) {
+        const launcher = page.locator('janice-coupons-launcher')
+        await launcher.locator('summary').click()
+        await launcher.getByLabel('Promo codes to try').fill(scenario.additionalCodes)
+        report.batchCount = (await launcher.locator('.heading').innerText()).trim()
+        report.promoDetected = await launcher.getAttribute('data-checkout') === 'promo-field'
+      }
       await page.locator('janice-coupons-launcher').getByRole('button', { name: 'Try coupons' }).click()
+      if (scenario.additionalCodes) {
+        await page.locator('janice-coupons-panel').waitFor()
+        report.overlayInTopLayer = await page.locator('janice-coupons-panel').evaluate(host => host.matches(':popover-open'))
+      }
     } else if (scenario.repeat) {
       report.startReplies = await popup.evaluate(
         ({ id, count }) => Promise.all(Array.from({ length: count }, () => chrome.runtime.sendMessage({ type: 'janice:try', tabId: id }))),

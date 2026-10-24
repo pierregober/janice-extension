@@ -84,7 +84,7 @@
     { title: 'Stopped', run: RUNS.stopped },
   ]
   const PANEL_SCRIPTS = ['shared/money.js', 'shared/messages.js', 'shared/icons.js', 'content/panel.js']
-  const LAUNCHER_SCRIPTS = [...PANEL_SCRIPTS, 'content/stores.js', 'content/launcher.js']
+  const LAUNCHER_SCRIPTS = [...PANEL_SCRIPTS, 'shared/coupon-candidates.js', 'shared/snooze.js', 'content/stores.js', 'content/checkout-discovery.js', 'content/inline-coupon.js', 'content/launcher.js']
 
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms))
 

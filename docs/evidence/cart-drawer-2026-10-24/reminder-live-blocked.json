@@ -1,0 +1,35 @@
+{
+  "startedAt": "2026-10-24T06:26:08.120Z",
+  "scenario": "Live cart-drawer savings reminder",
+  "noCouponEntry": true,
+  "noCheckoutNavigation": true,
+  "browser": "153.0.8010.12",
+  "guestCartSetup": {
+    "status": 200
+  },
+  "closedBefore": {
+    "path": "/",
+    "drawerOpen": false,
+    "fieldPresent": false,
+    "fieldEmpty": false,
+    "signalVisible": false,
+    "signalInTopLayer": false,
+    "heading": "You could save on this order",
+    "text": "",
+    "cardHidden": true,
+    "discoveryHint": "none",
+    "mutations": {
+      "promoApply": 0,
+      "checkout": 0
+    },
+    "focusEvents": [
+      {
+        "tag": "button",
+        "label": "Close dialog",
+        "janiceSignal": false
+      }
+    ]
+  },
+  "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#shopify-section-cart-drawer input[name=\"discount_code\"]')\u001b[22m\n\n    at /private/tmp/janice-drawer-prompt-live.js:69:16",
+  "finishedAt": "2026-10-24T06:26:43.904Z"
+}

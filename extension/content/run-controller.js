@@ -36,6 +36,7 @@
   function createRunController({
     adapter,
     store,
+    surface = 'checkout',
     candidates = [],
     providerError = null,
     onUpdate = () => {},
@@ -47,6 +48,7 @@
 
     const run = {
       runId,
+      surface,
       store: { id: store.id, name: store.name, isDemo: Boolean(store.isDemo) },
       status: 'idle',
       phase: null,
@@ -64,6 +66,10 @@
     let expectedCodes = []
     let hasMutated = false
     let deadline = Infinity
+    // A timed-out operation may still settle into either of these states.
+    // Previously tried codes are not automatically ours to remove later:
+    // the shopper may have deliberately applied one in the meantime.
+    let pendingMutation = null
     // Candidate codes this run tried to apply: if one shows up applied, it is ours to remove,
     // even when the store applied it after the adapter stopped waiting.
     const attemptedByUs = []
@@ -83,13 +89,19 @@
     async function start() {
       if (run.status !== 'idle') return snapshot()
       deadline = now() + runDeadlineMs
-      emit({ status: 'running', phase: 'checking', startedAt: now(), message: 'Reading your checkout…' })
+      emit({ status: 'running', phase: 'checking', startedAt: now(), message: surface === 'cart-drawer' ? 'Reading your cart…' : 'Reading your checkout…' })
 
       let result
       try {
         result = await execute()
       } catch (error) {
         result = await recover(error)
+      }
+      if (result.problem === 'codes-changed') {
+        result = { ...result, kind: 'cart-changed', reason: 'codes-changed' }
+      }
+      if (typeof adapter.restoreDraft === 'function') {
+        try { result.draftRestoration = await adapter.restoreDraft() } catch { result.draftRestoration = { ok: false, reason: 'unexpected' } }
       }
       emit({ status: 'done', phase: null, progress: null, message: '', result })
       return snapshot()
@@ -141,6 +153,7 @@
 
         const outcome = await applyCandidate(candidate.code)
         record(candidate.code, outcome)
+        if (stopRequested) break
         if (outcome.status === 'unsupported') throw new Halt('unsupported', outcome.reason)
         if (outcome.status === 'unverified') throw new Halt('unverified', outcome.reason ?? 'timeout')
         if (outcome.status === 'rejected' && BLOCKED_MESSAGE.test(outcome.message ?? '')) throw new Halt('unverified', 'blocked')
@@ -164,7 +177,7 @@
 
     function applyCandidate(code) {
       if (!holds(attemptedByUs, code)) attemptedByUs.push(code)
-      return mutate(() => adapter.applyCode(code))
+      return mutate(() => adapter.applyCode(code, { isCancelled: () => stopRequested }), { kind: 'apply', code })
     }
 
     function record(code, outcome) {
@@ -179,7 +192,21 @@
     }
 
     // Runs one checkout mutation, refusing to act on a checkout that changed underneath the run.
-    async function mutate(operation) {
+    function possibleCodes(beforeCodes, { kind, code }) {
+      return kind === 'remove'
+        ? beforeCodes.filter(applied => !sameCode(applied, code))
+        : holds(beforeCodes, code) ? [...beforeCodes] : [...beforeCodes, code]
+    }
+
+    function isExpectedState(state) {
+      return sameCodes(state.appliedCodes, expectedCodes) ||
+        Boolean(pendingMutation && (
+          sameCodes(state.appliedCodes, pendingMutation.before) ||
+          sameCodes(state.appliedCodes, pendingMutation.after)
+        ))
+    }
+
+    async function mutate(operation, change) {
       if (now() > deadline) throw new Halt('unverified', 'run-timeout')
       const before = await adapter.readSettledState()
       if (!before.ok) throw new Halt('unverified', before.reason)
@@ -188,10 +215,14 @@
       if (!sameCodes(before.appliedCodes, expectedCodes)) throw new Halt('cart-changed', 'codes-changed')
 
       hasMutated = true
+      pendingMutation = { before: [...before.appliedCodes], after: possibleCodes(before.appliedCodes, change) }
       const outcome = await operation()
       const after = outcome.state ?? adapter.readState()
       if (after.ok && after.page !== baseline.page) throw new Halt('interrupted', 'page-changed')
       if (after.ok && after.cartIdentity !== baseline.cartIdentity) throw new Halt('cart-changed', 'cart-changed')
+      if (after.ok && !isExpectedState(after)) throw new Halt('cart-changed', 'codes-changed')
+      if (after.ok) expectedCodes = [...after.appliedCodes]
+      if (!after.pending && outcome.status !== 'unverified') pendingMutation = null
       return { ...outcome, state: after }
     }
 
@@ -203,7 +234,7 @@
     async function clearCodes() {
       for (const code of [...expectedCodes]) {
         emit({ message: `Removing ${code} so each code is compared on its own…` })
-        const outcome = await mutate(() => adapter.removeCode(code))
+        const outcome = await mutate(() => adapter.removeCode(code), { kind: 'remove', code })
         if (outcome.status !== 'removed') {
           throw new Halt(outcome.status === 'unverified' ? 'unverified' : 'error', outcome.reason ?? 'remove-failed')
         }
@@ -259,12 +290,42 @@
       emit({ phase: 'restoring', progress: null, message: 'Putting your original coupon state back…' })
 
       try {
-        let state = await adapter.readSettledState()
+        // Restoration also awaits store requests. Check ownership before and
+        // after each one so a concurrent shopper edit is never overwritten.
+        async function readOwnedState() {
+          const current = await adapter.readSettledState()
+          if (current.ok && current.page !== baseline.page) throw new Halt('interrupted', 'page-changed')
+          if (current.ok && !isExpectedState(current) && !sameCodes(current.appliedCodes, baseline.appliedCodes)) {
+            throw new Halt('cart-changed', 'codes-changed')
+          }
+          if (current.ok) {
+            expectedCodes = [...current.appliedCodes]
+            pendingMutation = null
+          }
+          return current
+        }
+
+        async function restoreMutation(operation, change) {
+          const before = await readOwnedState()
+          if (!before.ok) return { status: 'unverified', reason: before.reason, state: before }
+          pendingMutation = { before: [...before.appliedCodes], after: possibleCodes(before.appliedCodes, change) }
+          const outcome = await operation()
+          const after = outcome.state ?? adapter.readState()
+          if (after.ok && after.page !== baseline.page) throw new Halt('interrupted', 'page-changed')
+          if (after.ok && !isExpectedState(after) && !sameCodes(after.appliedCodes, baseline.appliedCodes)) {
+            throw new Halt('cart-changed', 'codes-changed')
+          }
+          if (after.ok) expectedCodes = [...after.appliedCodes]
+          if (!after.pending && outcome.status !== 'unverified') pendingMutation = null
+          return { ...outcome, state: after }
+        }
+
+        let state = await readOwnedState()
         if (!state.ok) return { restoration: 'unverified', problem: state.reason }
 
         const ours = state.appliedCodes.filter(code => holds(attemptedByUs, code) && !holds(baseline.appliedCodes, code))
         for (const code of ours) {
-          const outcome = await adapter.removeCode(code)
+          const outcome = await restoreMutation(() => adapter.removeCode(code), { kind: 'remove', code })
           if (outcome.status !== 'removed') {
             return { restoration: outcome.status === 'unverified' ? 'unverified' : 'failed', problem: outcome.reason ?? 'remove-failed', ...seen(outcome.state) }
           }
@@ -274,7 +335,7 @@
 
         for (const code of [...removedByUs]) {
           if (!holds(state.appliedCodes, code)) {
-            const outcome = await adapter.applyCode(code)
+            const outcome = await restoreMutation(() => adapter.applyCode(code), { kind: 'apply', code })
             if (outcome.status !== 'accepted') {
               return {
                 restoration: outcome.status === 'unverified' ? 'unverified' : 'failed',
@@ -288,7 +349,7 @@
           removedByUs.splice(removedByUs.findIndex(removed => sameCode(removed, code)), 1)
         }
 
-        const final = await adapter.readSettledState()
+        const final = await readOwnedState()
         if (!final.ok) return { restoration: 'unverified', problem: final.reason }
         const codesMatch = sameCodes(final.appliedCodes, baseline.appliedCodes)
         const totalMatches =
@@ -296,6 +357,10 @@
         if (codesMatch && totalMatches) return { restoration: 'verified', ...seen(final) }
         return { restoration: 'unverified', problem: codesMatch ? 'total-differs' : 'codes-differ', ...seen(final) }
       } catch (error) {
+        if (error.reason === 'codes-changed') {
+          return { restoration: 'skipped', problem: 'codes-changed', ...seen(adapter.readState()) }
+        }
+        if (error.reason === 'page-changed') return { restoration: 'unverified', problem: 'page-changed' }
         return { restoration: 'failed', problem: error.reason ?? 'unexpected', detail: String(error?.message ?? error) }
       }
     }

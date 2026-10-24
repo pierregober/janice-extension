@@ -1,0 +1,225 @@
+{
+  "scenario": "Native cart drawer serial coupon run",
+  "startedAt": "2026-10-24T08:04:14.327Z",
+  "freshGuest": true,
+  "noCheckoutOrPayment": true,
+  "browser": "153.0.8010.12",
+  "setup": {
+    "addStatus": 200
+  },
+  "before": {
+    "status": 200,
+    "currency": "USD",
+    "total": 15999,
+    "codes": [],
+    "items": [
+      {
+        "variantId": 53427141411105,
+        "quantity": 1,
+        "originalLine": 15999
+      }
+    ]
+  },
+  "progressCaptured": true,
+  "progress": {
+    "button": "Stop",
+    "status": "Trying JANICETEST0 (1 of 2)…",
+    "tags": [],
+    "error": null,
+    "oldPanelPresent": false
+  },
+  "run": {
+    "attempts": [
+      {
+        "code": "JANICETEST0",
+        "outcome": "rejected",
+        "storeMessage": "Promo code JANICETEST0 is not valid or does not meet requirements.",
+        "total": null
+      },
+      {
+        "code": "AFF15",
+        "outcome": "accepted",
+        "storeMessage": "AFF15 is applied in the cart.",
+        "total": {
+          "amountMinor": 14499,
+          "basis": "cart-total",
+          "currency": "USD",
+          "shippingIncluded": false,
+          "taxIncluded": false
+        }
+      }
+    ],
+    "baseline": {
+      "codes": [],
+      "total": {
+        "amountMinor": 15999,
+        "basis": "cart-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      }
+    },
+    "message": "",
+    "phase": null,
+    "progress": null,
+    "result": {
+      "baselineTotal": {
+        "amountMinor": 15999,
+        "basis": "cart-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      },
+      "code": "AFF15",
+      "codes": [
+        "AFF15"
+      ],
+      "draftRestoration": {
+        "ok": true
+      },
+      "finalTotal": {
+        "amountMinor": 14499,
+        "basis": "cart-total",
+        "currency": "USD",
+        "shippingIncluded": false,
+        "taxIncluded": false
+      },
+      "kind": "better",
+      "restoration": "not-needed",
+      "savingsMinor": 1500
+    },
+    "runId": "run-mvm44t96-6isdb5",
+    "startedAt": 1792829061402,
+    "status": "done",
+    "store": {
+      "id": "sharper-image-us",
+      "isDemo": false,
+      "name": "Sharper Image"
+    },
+    "surface": "cart-drawer",
+    "updatedAt": 1792829070397
+  },
+  "inline": {
+    "button": "Try again",
+    "status": "You save $15.00 with AFF15",
+    "tags": [
+      "AFF15"
+    ],
+    "error": null,
+    "oldPanelPresent": false
+  },
+  "events": {
+    "applies": [
+      {
+        "code": "JANICETEST0",
+        "at": 1792829063838
+      },
+      {
+        "code": "AFF15",
+        "at": 1792829066963
+      }
+    ],
+    "removes": [],
+    "typed": [
+      {
+        "value": "J",
+        "at": 1792829062835
+      },
+      {
+        "value": "JA",
+        "at": 1792829062922
+      },
+      {
+        "value": "JAN",
+        "at": 1792829063008
+      },
+      {
+        "value": "JANI",
+        "at": 1792829063093
+      },
+      {
+        "value": "JANIC",
+        "at": 1792829063180
+      },
+      {
+        "value": "JANICE",
+        "at": 1792829063266
+      },
+      {
+        "value": "JANICET",
+        "at": 1792829063353
+      },
+      {
+        "value": "JANICETE",
+        "at": 1792829063439
+      },
+      {
+        "value": "JANICETES",
+        "at": 1792829063525
+      },
+      {
+        "value": "JANICETEST",
+        "at": 1792829063612
+      },
+      {
+        "value": "JANICETEST0",
+        "at": 1792829063698
+      },
+      {
+        "value": "A",
+        "at": 1792829066510
+      },
+      {
+        "value": "AF",
+        "at": 1792829066597
+      },
+      {
+        "value": "AFF",
+        "at": 1792829066684
+      },
+      {
+        "value": "AFF1",
+        "at": 1792829066771
+      },
+      {
+        "value": "AFF15",
+        "at": 1792829066858
+      }
+    ],
+    "overlap": false,
+    "checkout": 0
+  },
+  "after": {
+    "status": 200,
+    "currency": "USD",
+    "total": 14499,
+    "codes": [
+      {
+        "code": "AFF15",
+        "applicable": true
+      }
+    ],
+    "items": [
+      {
+        "variantId": 53427141411105,
+        "quantity": 1,
+        "originalLine": 15999
+      }
+    ]
+  },
+  "verified": true,
+  "cleanup": {
+    "status": 200,
+    "currency": "USD",
+    "total": 15999,
+    "codes": [],
+    "items": [
+      {
+        "variantId": 53427141411105,
+        "quantity": 1,
+        "originalLine": 15999
+      }
+    ]
+  },
+  "finishedAt": "2026-10-24T08:04:32.123Z"
+}

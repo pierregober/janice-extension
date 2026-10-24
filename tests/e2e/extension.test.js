@@ -95,6 +95,83 @@ test('the page button: hovering shows the coupon count; its Try coupons runs Jan
   }
 })
 
+test('the overlay tries a deduplicated batch serially, logs outcomes and keeps the best verified code', async () => {
+  const { browser, page, tabId, record } = await demoCheckout('spend=20000&delay=350')
+  try {
+    const launcher = page.locator('janice-coupons-launcher')
+    await launcher.locator('.tab').click()
+    await launcher.locator('.sub').filter({ hasText: 'Promo code field detected' }).waitFor()
+    assert.deepEqual((await record()).applies, [])
+    await launcher.locator('summary').click()
+    await launcher.getByLabel('Promo codes to try').fill('aff15, SAVE20\nNOPE;save20')
+    await launcher.locator('.heading').filter({ hasText: '3 coupons found' }).waitFor()
+    await launcher.getByRole('button', { name: 'Try coupons', exact: true }).click()
+    await page.bringToFront()
+    const overlay = page.locator('janice-coupons-panel')
+    await overlay.waitFor()
+    assert.equal(await overlay.evaluate(host => host.matches(':popover-open')), true, 'the overlay is in the top layer')
+    assert.equal(await page.locator('body').getAttribute('inert'), null, 'checkout remains interactive')
+    await waitForPanelDone(page)
+    assert.deepEqual(await record(), { applies: ['AFF15', 'SAVE20', 'NOPE', 'SAVE20'], removes: ['AFF15', 'SAVE20'], forbidden: [] })
+    const run = await browser.storedRun(tabId)
+    assert.deepEqual(run.attempts.map(attempt => [attempt.code, attempt.outcome]), [['AFF15', 'accepted'], ['SAVE20', 'accepted'], ['NOPE', 'rejected']])
+    assert.equal(run.result.code, 'SAVE20')
+    assert.equal(run.result.savingsMinor, 2000)
+    await overlay.locator('summary').click()
+    assert.match(await overlay.getByRole('list', { name: 'Coupon attempts' }).innerText(), /AFF15: Accepted.*\$185\.00[\s\S]*SAVE20: Accepted.*\$180\.00[\s\S]*NOPE: Not accepted/)
+    assert.deepEqual(await page.evaluate(() => window.JaniceDemo.state.codes), ['SAVE20'])
+    const popup = await browser.openPopup(tabId)
+    await popup.getByText('Demo result: You save $20.00 with SAVE20').waitFor()
+    assert.deepEqual(await popup.locator('#coupons .ticket').allTextContents(), ['AFF15', 'SAVE20', 'NOPE'])
+    assert.equal(await popup.getByLabel('Promo codes to try').inputValue(), 'SAVE20\nNOPE', 'retry includes the prior shopper batch')
+  } finally {
+    await browser.close()
+  }
+})
+
+test('the open card rechecks dynamically added promo controls without applying codes', async () => {
+  const { browser, page, record } = await demoCheckout('spend=20000')
+  try {
+    await page.evaluate(() => {
+      window.detachedPromo = document.querySelector('input[name="reductions"]').form
+      window.detachedPromo.remove()
+    })
+    const launcher = page.locator('janice-coupons-launcher')
+    await launcher.locator('.tab').click()
+    await launcher.locator('.text').filter({ hasText: "discount code field wasn't found" }).waitFor()
+    assert.equal(await launcher.getByRole('button', { name: 'Try coupons', exact: true }).isVisible(), false)
+    await page.evaluate(() => document.body.append(window.detachedPromo))
+    await launcher.locator('.sub').filter({ hasText: 'Promo code field detected' }).waitFor()
+    assert.equal(await launcher.getByRole('button', { name: 'Try coupons', exact: true }).isVisible(), true)
+    assert.deepEqual((await record()).applies, [])
+  } finally {
+    await browser.close()
+  }
+})
+
+test('a maximum-length code stays readable in the overlay at mobile width', async () => {
+  const { browser, page, tabId } = await demoCheckout('spend=20000&delay=500')
+  try {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const popup = await browser.openPopup(tabId)
+    await popup.getByText('Ready to try 1 coupon').waitFor()
+    await popup.locator('summary').click()
+    const longCode = 'LONG'.repeat(16)
+    await popup.getByLabel('Promo codes to try').fill(longCode)
+    await popup.getByRole('button', { name: 'Try coupons', exact: true }).click()
+    await page.bringToFront()
+    const overlay = page.locator('janice-coupons-panel')
+    await overlay.locator('.ticket').filter({ hasText: longCode }).waitFor()
+    const dimensions = await overlay.locator('.panel').evaluate(panel => ({ scroll: panel.scrollWidth, width: panel.clientWidth, right: panel.getBoundingClientRect().right }))
+    assert.ok(dimensions.scroll <= dimensions.width + 1, 'long codes do not cause horizontal scrolling')
+    assert.ok(dimensions.right <= 390, 'panel remains inside the viewport')
+    assert.equal(await overlay.getByRole('button', { name: 'Stop', exact: true }).isVisible(), true)
+    await waitForPanelDone(page)
+  } finally {
+    await browser.close()
+  }
+})
+
 test('the run continues after the popup closes; reopening shows its progress and Stop', async () => {
   const { browser, page, tabId } = await demoCheckout('spend=20000&delay=3000')
   try {

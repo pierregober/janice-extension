@@ -4,9 +4,16 @@
  * store; at checkout it offers Try coupons, elsewhere a link to the
  * checkout. Opening it only reads, through the service worker's inspect as
  * when the popup opens: the checkout changes only after Try coupons. The
- * card opens on hover or click, never by itself, and the button steps aside
- * while the run panel is on the page. Like the panel, it lives in a shadow
- * root so the store's styles cannot restyle it.
+ * card opens on hover or click. A visible Shopify cart promo field receives
+ * a subtle outline and a small Use code control; detection never fills it.
+ * The button steps aside
+ * while the run panel is on the page. The shopper can slide the button along
+ * the edge, by dragging its tab or with the arrow keys, and it keeps that
+ * spot on later pages. The gear in the card's header opens a menu: Hide on
+ * this page, Snooze for 24 hours (every store), Snooze on this site (until
+ * turned back on in the popup or settings, shared/snooze.js) and Go to
+ * settings. Like the panel, it lives in a shadow root so the store's styles
+ * cannot restyle it.
  */
 ;(function (root) {
   'use strict'
@@ -34,21 +41,27 @@
       border: 0; border-radius: 14px 0 0 14px;
       background: linear-gradient(135deg, var(--brand), var(--brand-2));
       box-shadow: 0 6px 18px rgba(29, 27, 32, 0.28), 0 1px 3px rgba(29, 27, 32, 0.2);
-      cursor: pointer;
+      /* The tab is also the handle that slides the button along the edge. */
+      cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none;
       transition: width 0.15s ease;
     }
     .tab:hover, .tab[aria-expanded="true"] { width: 58px; }
-    .tab .mark { width: 34px; height: 34px; }
-    /* On the purple tab the tag stands alone, as on the toolbar icon. */
-    .tab .mark rect { fill: none; }
+    .tab.dragging { cursor: grabbing; }
+    .tab .mark { width: 34px; height: 34px; object-fit: contain; }
     .card {
+      /* Scrollbars follow the theme, as the colors do. */
+      color-scheme: light dark;
       position: absolute; right: 12px; bottom: calc(100% + 14px);
+      /* --room: the space beside the tab, set when the card opens; the body scrolls within it. */
+      display: flex; flex-direction: column; max-height: var(--room, calc(100vh - 186px));
       width: min(360px, calc(100vw - 24px));
       border: 1px solid var(--line); border-radius: 16px;
       background: var(--bg);
       box-shadow: 0 16px 40px rgba(29, 27, 32, 0.24), 0 2px 8px rgba(29, 27, 32, 0.12);
       animation: rise 0.18s ease-out;
     }
+    /* Below the tab when it sits high up, far enough down for the store tile to clear it. */
+    .card[data-below] { top: calc(100% + 34px); bottom: auto; }
     .store {
       position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
       display: grid; place-items: center;
@@ -64,15 +77,40 @@
       padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: 999px;
       color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     }
-    .close {
-      display: grid; place-items: center; width: 34px; height: 34px; margin-left: auto; padding: 0;
+    .gear, .close {
+      display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
       border: 0; border-radius: 50%; background: transparent; color: var(--text); cursor: pointer;
     }
-    .close:hover { background: var(--surface); }
-    .close .icon { width: 20px; height: 20px; }
+    .gear { margin-left: auto; }
+    .gear:hover, .gear[aria-expanded="true"], .close:hover { background: var(--surface); }
+    .gear .icon, .close .icon { width: 20px; height: 20px; }
+    /* The gear's menu: a popover in the top layer, under the gear and lined up with its right edge. */
+    .menu {
+      position: fixed; inset: auto; margin: 0;
+      min-width: 224px; padding: 6px;
+      border: 1px solid var(--line); border-radius: 12px;
+      background: var(--bg); color: var(--text);
+      box-shadow: 0 12px 32px rgba(29, 27, 32, 0.22), 0 2px 6px rgba(29, 27, 32, 0.12);
+    }
+    .menu:popover-open { display: grid; gap: 2px; }
+    @supports (position-area: block-end) {
+      .gear { anchor-name: --janice-gear; }
+      .menu { position-anchor: --janice-gear; position-area: block-end span-inline-start; margin-block-start: 6px; position-try-fallbacks: flip-block; }
+    }
+    .menu-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; min-height: 40px; padding: 8px 12px;
+      border: 0; border-radius: 8px; background: transparent; color: var(--text);
+      font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer;
+    }
+    .menu-item:hover { background: var(--surface); }
+    .menu-item .icon { flex: none; width: 18px; height: 18px; color: var(--muted); }
+    /* Tips on product pages (content/tips.js): a "tips" title in the header. */
+    .tips-label { color: var(--brand-text); font-size: 18px; font-weight: 750; letter-spacing: -0.01em; }
+    .tips-slot { min-height: 0; overflow: auto; }
     .body {
       display: grid; gap: 12px;
-      max-height: calc(100vh - 240px); overflow: auto;
+      min-height: 0; overflow: auto;
       padding: 6px 18px 16px;
       text-align: center;
     }
@@ -83,10 +121,11 @@
     .sub { margin-top: -8px; color: var(--muted); font-size: 13.5px; }
     .coupons { display: grid; gap: 8px; padding: 0; list-style: none; text-align: left; }
     .coupon {
-      display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+      display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto; align-items: center; gap: 10px;
       padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
     }
     .ticket {
+      min-width: 0; overflow-wrap: anywhere;
       padding: 2px 8px; border: 2px dashed var(--brand-text); border-radius: 8px; color: var(--brand-text);
       font: 700 13px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: 0.08em;
     }
@@ -113,6 +152,13 @@
     button:disabled { cursor: default; opacity: 0.6; }
     button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .note { color: var(--warning); font-size: 13px; }
+    .manual-codes { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; text-align: left; }
+    .manual-codes summary { cursor: pointer; color: var(--brand-text); font-weight: 650; }
+    .manual-codes label { display: block; margin: 10px 0 5px; font-size: 13px; font-weight: 600; }
+    .manual-codes textarea { display: block; width: 100%; min-height: 68px; padding: 8px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+    .codes-help { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .codes-error { margin-top: 6px; color: var(--warning); font-size: 13px; }
+    textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .fine { padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
     .spinner {
       justify-self: center; width: 22px; height: 22px;
@@ -158,12 +204,21 @@
     shadow.innerHTML = `
       <style>${STYLE}</style>
       <div class="root">
-        <button type="button" class="tab" aria-expanded="false" aria-controls="card">${MARK}</button>
+        <button type="button" class="tab" aria-expanded="false" aria-controls="card" aria-describedby="move-hint">${MARK}</button>
+        <span id="move-hint" hidden>Drag it, or use the up and down arrow keys, to move it along the edge of the window.</span>
         <section class="card" id="card" aria-label="Janice Coupons" hidden>
           <span class="store" aria-hidden="true"></span>
           <header class="head">
             ${MARK}
+            <span class="tips-label" hidden>tips</span>
             <span class="demo" hidden title="Simulated checkout: results do not reflect a real store">Demo</span>
+            <button type="button" class="gear" popovertarget="menu" aria-label="Settings" aria-expanded="false">${icon('gear')}</button>
+            <div class="menu" id="menu" popover>
+              <button type="button" class="menu-item" data-action="hide-page">${icon('hide')}Hide on this page</button>
+              <button type="button" class="menu-item" data-action="snooze-day">${icon('clock')}Snooze for 24 hours</button>
+              <button type="button" class="menu-item" data-action="snooze-site">${icon('snooze')}Snooze on this site</button>
+              <button type="button" class="menu-item" data-action="settings">${icon('gear')}Go to settings</button>
+            </div>
             <button type="button" class="close" aria-label="Close">${icon('close')}</button>
           </header>
           <div class="body">
@@ -172,11 +227,19 @@
             <p class="sub" hidden></p>
             <ul class="coupons" hidden></ul>
             <p class="text" hidden></p>
+            <details class="manual-codes" hidden>
+              <summary>Add your own codes</summary>
+              <label for="additional-codes">Promo codes to try</label>
+              <textarea id="additional-codes" rows="3" maxlength="2000" spellcheck="false" autocapitalize="off" aria-describedby="codes-help codes-error" placeholder="WELCOME10, SAVE20"></textarea>
+              <p id="codes-help" class="codes-help">Separate codes with commas or new lines. Up to 20 codes per run.</p>
+              <p id="codes-error" class="codes-error" role="status" hidden></p>
+            </details>
             <button type="button" class="try" hidden></button>
             <a class="go primary" hidden>Go to checkout</a>
             <p class="note" hidden></p>
             <p class="fine">Never touches payment details or places orders.</p>
           </div>
+          <div class="tips-slot" hidden></div>
           <p class="announce" role="status"></p>
         </section>
       </div>
@@ -186,7 +249,27 @@
     const element = (tag, className, text) => Object.assign(doc.createElement(tag), { className, textContent: text ?? '' })
     const tab = part('.tab')
     const card = part('.card')
+    const menu = part('.menu')
     const rows = new Map()
+    // The store whose page this is: Snooze on this site snoozes the button there.
+    const store = Janice.stores.detect(win.location, doc)
+    part('[data-action="snooze-site"]').hidden = !store
+
+    // On a product page the card shows tips about the product instead (content/tips.js).
+    const product = store ? Janice.tips?.readProduct(doc, win.location) ?? null : null
+    const tips = product
+      ? Janice.tips.createTipsView({
+          window: win,
+          storage: win.chrome?.storage?.local ?? null,
+          product,
+          storeName: store.name,
+          checkoutUrl: Janice.stores.STORES[store.id]?.checkoutUrl ?? null,
+        })
+      : null
+    if (tips) {
+      part('.tips-slot').append(tips.element)
+      card.setAttribute('aria-label', 'Janice tips')
+    }
 
     let inspection = null
     let isOpen = false
@@ -195,6 +278,37 @@
     let note = ''
     let closeTimer
     let requests = 0
+    let codesError = ''
+    let refreshTimer
+    let localDiscovery = null
+    let latestRun = null
+    Janice.runViews ??= new Set()
+    const inlineCoupon = Janice.createInlineCoupon({
+      window: win,
+      isEligibleInput: input => Janice.checkoutDiscovery.findVisibleDrawerInputs({ document: doc }).includes(input),
+      onTry: () => requestRun(),
+      onStop: () => send({ type: 'janice:stop' }),
+    })
+    let inlineCandidates = null
+    let inlineChecking = false
+    // Hide on this page lasts as long as the page. A snooze is kept (shared/snooze.js) and read before the button
+    // shows; snoozedBy says what hides it here ('store' or 'everywhere').
+    let isHiddenHere = false
+    let snoozedBy = null
+    let isRestored = false
+    let isVisitRecorded = false
+    let isMenuOpen = false
+    const isQuiet = () => isHiddenHere || Boolean(snoozedBy)
+
+    function preparedCandidates() {
+      codesError = ''
+      try {
+        return Janice.couponCandidates.mergeCandidates(inspection?.candidates ?? [], part('#additional-codes').value)
+      } catch (error) {
+        codesError = error.message
+        return inspection?.candidates ?? []
+      }
+    }
 
     /** What the card shows for the page as last inspected. */
     function screen() {
@@ -206,31 +320,34 @@
         return { store, heading: "Couldn't load coupons", text: `${inspection.providerError}. Nothing was changed.`, warn: true }
       }
 
-      const candidates = inspection.candidates ?? []
+      const candidates = preparedCandidates()
       const count = candidates.length
       if (count === 0) return { store, count, heading: 'No coupons found yet', text: `Janice has no codes for ${store.name} right now.` }
 
       const one = count === 1
       const found = { store, candidates, count, heading: countText(count), sub: `for ${store.name}` }
-      if (store.page !== 'checkout') {
+      if (store.page !== 'checkout' && !inspection.detection.supported) {
         return {
           ...found,
           link: Janice.stores.STORES[store.id]?.checkoutUrl,
-          text: one
+          text: inspection.detection.discovery?.kind === 'promo-field'
+            ? "Promo code field detected. Automatic testing isn't verified here. Go to checkout to try coupons."
+            : one
             ? 'Janice tries it for you at checkout and keeps it only if your total goes down.'
             : 'Janice tries them for you at checkout and keeps the best one only if your total goes down.',
         }
       }
 
       const { detection, run } = inspection
-      if (run && ACTIVE.has(run.status)) return { ...found, heading: phaseTitle(run), sub: progressText(run) }
+      if (run && ACTIVE.has(run.status)) return { ...found, heading: phaseTitle(run), sub: progressText(run), start: run.status === 'stopping' ? 'stopping' : 'stop' }
       if (run?.result) {
         const { title, tone } = describeResult(run)
         return { ...found, heading: title, tone, sub: `${countText(count)} for ${store.name}`, start: detection.supported && 'again' }
       }
-      if (!detection.supported) return { ...found, text: `${reasonText(detection.reason)} Nothing was changed.`, warn: true }
+      if (!detection.supported) return { ...found, text: detection.reason !== 'unverified-checkout' && detection.discovery?.kind === 'promo-field' ? "Promo code field detected. Automatic testing isn't verified here. Nothing was changed." : `${reasonText(detection.reason)} Nothing was changed.`, warn: true }
       return {
         ...found,
+        sub: detection.discovery?.kind === 'promo-field' ? 'Promo code field detected' : found.sub,
         start: 'first',
         text: one
           ? 'Janice tries it in your checkout and keeps it only if your total goes down.'
@@ -249,7 +366,7 @@
       copy.type = 'button'
       copy.setAttribute('aria-label', `Copy code ${candidate.code}`)
       copy.addEventListener('click', () => copyCode(candidate.code, copy))
-      row.append(element('span', 'ticket', candidate.code), element('span', 'offer', offerSummary(candidate) ?? candidate.offerText ?? 'Coupon code'), copy)
+      row.append(element('span', 'ticket', candidate.code), element('span', 'offer', offerSummary(candidate) ?? candidate.offerText ?? (candidate.source?.kind === 'shopper-entered' ? 'Your code' : 'Coupon code')), copy)
       return row
     }
 
@@ -269,6 +386,7 @@
       const view = screen()
       tab.setAttribute('aria-expanded', String(isOpen))
       tab.setAttribute('aria-label', Number.isInteger(view.count) ? `Janice Coupons: ${countText(view.count)}` : 'Janice Coupons')
+      if (localDiscovery?.kind === 'promo-field') tab.setAttribute('aria-label', `${tab.getAttribute('aria-label')}; promo code field detected`)
       card.hidden = !isOpen
       if (!isOpen) return
 
@@ -284,14 +402,24 @@
 
       const tryButton = part('.try')
       tryButton.hidden = !view.start
-      tryButton.disabled = isStarting
+      tryButton.disabled = isStarting || Boolean(codesError) || view.start === 'stopping'
       tryButton.className = `try ${view.start === 'again' ? 'secondary' : 'primary'}`
-      tryButton.textContent = isStarting ? 'Starting…' : view.start === 'again' ? 'Try coupons again' : 'Try coupons'
+      tryButton.textContent = isStarting ? 'Starting…' : view.start === 'again' ? 'Try coupons again' : view.start === 'stop' ? 'Stop' : view.start === 'stopping' ? 'Stopping…' : 'Try coupons'
 
       const go = part('.go')
       go.hidden = !view.link
       if (view.link) go.href = view.link
       show('.note', note)
+      part('.manual-codes').hidden = !(inspection?.detection?.supported && !inspection?.providerError && !ACTIVE.has(inspection?.run?.status))
+      part('#additional-codes').disabled = isStarting
+      part('#additional-codes').setAttribute('aria-invalid', String(Boolean(codesError)))
+      show('.codes-error', codesError)
+
+      if (tips) {
+        for (const selector of ['.body', '.store', '.demo']) part(selector).hidden = true
+        for (const selector of ['.tips-slot', '.tips-label']) part(selector).hidden = false
+        void tips.update({ couponCount: view.isBusy ? null : view.count ?? 0 })
+      }
     }
 
     async function refresh() {
@@ -304,25 +432,31 @@
       }
       if (request !== requests) return
       inspection = reply ?? { ok: false, reason: 'error' }
+      if (reply?.run && (!latestRun || reply.run.updatedAt >= latestRun.updatedAt)) latestRun = reply.run
       render()
     }
 
     function open({ pin = false } = {}) {
+      inlineCoupon.hide()
       win.clearTimeout(closeTimer)
+      win.clearTimeout(refreshTimer)
       isPinned ||= pin
       if (isOpen) return render()
       isOpen = true
       note = ''
+      placeCard()
       render()
       return refresh()
     }
 
     function close({ focus = false } = {}) {
       win.clearTimeout(closeTimer)
+      closeMenu()
       if (!isOpen) return
       isOpen = false
       isPinned = false
       render()
+      void syncInlineCoupon()
       if (focus) tab.focus()
     }
 
@@ -335,15 +469,20 @@
 
     async function start() {
       if (isStarting) return
+      if (ACTIVE.has((latestRun ?? inspection?.run)?.status)) {
+        try { await send({ type: 'janice:stop' }) } catch { note = 'Could not request Stop. Try again.'; render() }
+        return
+      }
+      preparedCandidates()
+      if (codesError) {
+        render()
+        part('.announce').textContent = codesError
+        return
+      }
       isStarting = true
       note = ''
       render()
-      let reply
-      try {
-        reply = await send({ type: 'janice:try' })
-      } catch (error) {
-        reply = { ok: false, reason: 'error', detail: String(error?.message ?? error) }
-      }
+      const reply = await requestRun()
       isStarting = false
       // Once started, the run panel takes over and this button steps aside.
       if (reply?.ok) return close()
@@ -351,6 +490,23 @@
       note = refusalText(reply)
       render()
       part('.announce').textContent = note
+    }
+
+    async function requestRun() {
+      const additionalCodes = part('#additional-codes').value
+      try {
+        Janice.couponCandidates.mergeCandidates(inlineCandidates ?? inspection?.candidates ?? [], additionalCodes)
+        return await send({ type: 'janice:try', ...(additionalCodes.trim() ? { additionalCodes } : {}) })
+      } catch (error) {
+        return { ok: false, reason: 'error', detail: String(error?.message ?? error) }
+      }
+    }
+
+    function runUpdated(run) {
+      latestRun = run
+      if (inspection) inspection = { ...inspection, run }
+      render()
+      void syncInlineCoupon()
     }
 
     async function copyCode(code, button) {
@@ -366,31 +522,263 @@
       win.setTimeout(() => (button.textContent = 'Copy'), 2000)
     }
 
+    // The gear's menu. The popover opens and closes itself (popovertarget, light dismiss, Escape); opening it
+    // keeps the card open until the card is closed.
+    const closeMenu = () => isMenuOpen && menu.hidePopover()
+    // Without CSS anchor positioning (before Chrome 129) the menu is placed under the gear by hand.
+    function placeMenu() {
+      if (win.CSS?.supports?.('position-area', 'block-end')) return
+      const gear = part('.gear').getBoundingClientRect()
+      menu.style.setProperty('top', `${gear.bottom + 6}px`)
+      menu.style.setProperty('right', `${Math.max(MARGIN, win.innerWidth - gear.right)}px`)
+    }
+
+    // Hide on this page, or a snooze: the button and its Use code control leave the page at once. A snooze is
+    // also kept, and other tabs and later pages follow it (storageChanged).
+    async function quiet(action) {
+      if (action === 'hide-page') isHiddenHere = true
+      else snoozedBy = action === 'snooze-site' ? 'store' : 'everywhere'
+      close()
+      syncDisplay()
+      inlineCoupon.hide()
+      if (action === 'hide-page' || !storage) return
+      try {
+        if (action === 'snooze-site') await Janice.snooze.snoozeStore(storage.local, store)
+        else await Janice.snooze.snoozeEverywhere(storage.local)
+      } catch {
+        // Not kept: the button stays hidden on this page only.
+      }
+    }
+
+    async function openSettings() {
+      close()
+      try {
+        await send({ type: 'janice:open-settings' })
+      } catch {
+        // Still a click away: the toolbar popup's gear, or Options in Janice's toolbar menu.
+      }
+    }
+
     // The run panel takes the corner during and after a run; the button comes back when it closes.
     let isPanelShown = false
+    // Shown unless the run panel has the corner or the shopper hid or snoozed the button.
+    function syncDisplay() {
+      host.style.setProperty('display', isPanelShown || isQuiet() ? 'none' : 'block', 'important')
+    }
     function syncWithPanel() {
       const isShown = Boolean(doc.querySelector('janice-coupons-panel'))
       if (isShown === isPanelShown) return
       isPanelShown = isShown
-      host.style.setProperty('display', isShown ? 'none' : 'block', 'important')
-      if (!isShown) return
+      syncDisplay()
+      if (!isShown) return void syncInlineCoupon()
+      inlineCoupon.hide()
       close()
       inspection = null
     }
-    const observer = new win.MutationObserver(syncWithPanel)
+    function scanPage() {
+      if (isPanelShown) return
+      localDiscovery = Janice.checkoutDiscovery?.inspect({ document: doc, location: win.location }) ?? null
+      host.setAttribute('data-checkout', localDiscovery?.kind ?? 'none')
+      render()
+      void syncInlineCoupon()
+    }
+
+    async function syncInlineCoupon() {
+      const inputs = () => Janice.checkoutDiscovery.findVisibleDrawerInputs({ document: doc })
+      if (!host.isConnected || !isRestored || isQuiet() || isPanelShown || isOpen || inputs().length === 0) return inlineCoupon.hide()
+      if (inlineCandidates !== null) return inlineCoupon.sync({ inputs: inputs(), candidates: inlineCandidates, run: latestRun ?? inspection?.run ?? null })
+      if (inlineChecking) return
+      inlineChecking = true
+      try {
+        // Highlight only actual provider candidates. Discovery never writes
+        // to a field; Use code is the shopper's explicit fill action.
+        const reply = await send({ type: 'janice:inspect' })
+        if (!host.isConnected) return
+        inlineCandidates = reply?.ok && !reply.providerError ? reply.candidates ?? [] : []
+        if (reply?.run && (!latestRun || reply.run.updatedAt >= latestRun.updatedAt)) latestRun = reply.run
+        if (isPanelShown || isOpen || isQuiet()) return inlineCoupon.hide()
+        inlineCoupon.sync({ inputs: inputs(), candidates: inlineCandidates, run: latestRun })
+      } catch {
+        inlineCandidates = []
+        inlineCoupon.hide()
+      } finally {
+        inlineChecking = false
+      }
+    }
+    const isJaniceNode = node => {
+      const element = node.nodeType === 1 ? node : node.parentElement
+      return Boolean(element?.closest('janice-coupons-launcher, janice-coupons-panel, janice-inline-coupon'))
+    }
+    function pageChanged(records = []) {
+      syncWithPanel()
+      if (records.length && records.every(record => isJaniceNode(record.target) || (record.type === 'childList' && [...record.addedNodes, ...record.removedNodes].length && [...record.addedNodes, ...record.removedNodes].every(isJaniceNode)))) return
+      win.clearTimeout(refreshTimer)
+      refreshTimer = win.setTimeout(() => {
+        scanPage()
+        if (isOpen && !isPanelShown && !isStarting && !ACTIVE.has(inspection?.run?.status)) void refresh()
+      }, 180)
+    }
+    const observer = new win.MutationObserver(pageChanged)
+
+    // Moving the button: it slides along the right edge when its tab is dragged, or with the up and down arrow
+    // keys while the tab has focus. Its spot is kept for later pages in chrome.storage.local, as a share of the
+    // edge's length so that a resized window keeps it in proportion. Until moved, it sits in its default spot.
+    const POSITION = 'launcher:position'
+    const SNOOZE = Janice.snooze.KEY
+    const MARGIN = 8
+    const STEP = 15
+    const storage = win.chrome?.storage
+    let share = null
+    let drag = null
+    let wasDragged = false
+
+    // While the button is hidden for the panel it has no height, so the tab's stands in.
+    const travel = () => Math.max(0, win.innerHeight - (host.offsetHeight || 48) - 2 * MARGIN)
+
+    // Every move goes through this one clamp, so the button never leaves the window.
+    function moveTo(top) {
+      const clamped = Math.min(Math.max(top, MARGIN), MARGIN + travel())
+      host.style.setProperty('top', `${clamped}px`, 'important')
+      host.style.setProperty('bottom', 'auto', 'important')
+      share = travel() ? (clamped - MARGIN) / travel() : 0
+      if (isOpen) placeCard()
+    }
+    const moveToShare = value => moveTo(MARGIN + Math.min(Math.max(value, 0), 1) * travel())
+
+    // The card opens on the side of the tab with more room, above it unless the tab sits high up, and no taller
+    // than that room: the gap, and the store tile over the card's top edge, come off it.
+    function placeCard() {
+      const { top, bottom } = tab.getBoundingClientRect()
+      const above = top - 14 - 28 - MARGIN
+      const below = win.innerHeight - bottom - 34 - MARGIN
+      card.toggleAttribute('data-below', below > above)
+      card.style.setProperty('--room', `${Math.max(above, below, 160)}px`)
+    }
+
+    async function keepPosition() {
+      try {
+        await storage?.local.set({ [POSITION]: { share } })
+      } catch {
+        // Not kept: the button stays where it is on this page.
+      }
+    }
+
+    // The kept spot and any snooze are read before the button shows, so it never jumps or flashes.
+    async function restore() {
+      let kept = {}
+      if (storage) {
+        host.style.setProperty('visibility', 'hidden', 'important')
+        try {
+          kept = await storage.local.get([POSITION, SNOOZE])
+        } catch {
+          // The default spot, and no snooze.
+        }
+      }
+      if (Number.isFinite(kept[POSITION]?.share)) moveToShare(kept[POSITION].share)
+      snoozedBy = Janice.snooze.hiddenBy(kept[SNOOZE], store?.id)
+      isRestored = true
+      syncDisplay()
+      host.style.removeProperty('visibility')
+      void syncInlineCoupon()
+      recordVisit()
+    }
+
+    // Tips keep today's price once the button may show, not while it is snoozed.
+    function recordVisit() {
+      if (!tips || isVisitRecorded || !isRestored || snoozedBy) return
+      isVisitRecorded = true
+      void tips.recordVisit()
+    }
+
+    // Moved in another tab; snoozed or turned back on in another tab, the popup or the settings page.
+    const storageChanged = (changes, area) => {
+      if (area !== 'local') return
+      const value = changes[POSITION]?.newValue?.share
+      if (!drag && Number.isFinite(value)) moveToShare(value)
+      if (!changes[SNOOZE]) return
+      snoozedBy = Janice.snooze.hiddenBy(changes[SNOOZE].newValue, store?.id)
+      if (snoozedBy) close()
+      syncDisplay()
+      void syncInlineCoupon()
+      recordVisit()
+    }
+    const resized = () => {
+      if (share !== null) moveToShare(share)
+      pageChanged()
+    }
+
+    tab.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || !event.isPrimary) return
+      wasDragged = false
+      drag = { pointerId: event.pointerId, startY: event.clientY, offset: event.clientY - host.getBoundingClientRect().top, isMoving: false }
+      tab.setPointerCapture?.(event.pointerId)
+    })
+    tab.addEventListener('pointermove', event => {
+      if (event.pointerId !== drag?.pointerId) return
+      if (!drag.isMoving) {
+        // A few pixels of travel make it a drag rather than a click.
+        if (Math.abs(event.clientY - drag.startY) < 4) return
+        drag.isMoving = true
+        wasDragged = true
+        tab.classList.add('dragging')
+        close()
+      }
+      moveTo(event.clientY - drag.offset)
+    })
+    const endDrag = () => {
+      if (drag?.isMoving) {
+        void keepPosition()
+        // The click that ends a drag is ignored; a touch drag may end without one.
+        win.setTimeout(() => (wasDragged = false), 0)
+      }
+      drag = null
+      tab.classList.remove('dragging')
+    }
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) tab.addEventListener(type, endDrag)
+    tab.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+      event.preventDefault()
+      moveTo(host.getBoundingClientRect().top + (event.key === 'ArrowUp' ? -STEP : STEP))
+      void keepPosition()
+    })
 
     const outside = event => isOpen && !event.composedPath().includes(host) && close()
     tab.addEventListener('pointerenter', event => event.pointerType === 'mouse' && open())
     tab.addEventListener('pointerleave', leave)
-    tab.addEventListener('click', () => (isOpen && isPinned ? close() : open({ pin: true })))
+    tab.addEventListener('click', () => {
+      if (wasDragged) return
+      if (isOpen && isPinned) close()
+      else open({ pin: true })
+    })
     card.addEventListener('pointerenter', () => win.clearTimeout(closeTimer))
     card.addEventListener('pointerleave', leave)
     part('.close').addEventListener('click', () => close({ focus: true }))
+    menu.addEventListener('beforetoggle', event => {
+      isMenuOpen = event.newState === 'open'
+      part('.gear').setAttribute('aria-expanded', String(isMenuOpen))
+      if (isMenuOpen) {
+        isPinned = true
+        return placeMenu()
+      }
+      // Chromium doesn't give focus back to the gear for a popover in a shadow root (as of Chrome 153).
+      if (menu.contains(shadow.activeElement)) part('.gear').focus()
+    })
+    menu.addEventListener('click', event => {
+      const action = event.target.closest('.menu-item')?.dataset.action
+      if (action === 'settings') void openSettings()
+      else if (action) void quiet(action)
+    })
     part('.try').addEventListener('click', start)
+    part('#additional-codes').addEventListener('input', () => {
+      isPinned = true
+      note = ''
+      render()
+    })
     shadow.addEventListener('keydown', event => {
       if (event.key !== 'Escape' || !isOpen) return
       event.stopPropagation()
-      close({ focus: true })
+      // An open menu closes by itself (the popover's light dismiss), and the card stays.
+      if (!isMenuOpen) close({ focus: true })
     })
 
     return {
@@ -398,17 +786,35 @@
       mount() {
         const parent = doc.body ?? doc.documentElement
         parent.append(host)
-        observer.observe(parent, { childList: true })
+        observer.observe(parent, { childList: true, subtree: true, attributes: true, attributeFilter: ['name', 'id', 'type', 'placeholder', 'aria-label', 'aria-labelledby', 'disabled', 'readonly', 'hidden', 'inert', 'aria-hidden', 'open', 'style', 'class', 'aria-expanded'] })
         doc.addEventListener('pointerdown', outside, true)
+        doc.addEventListener('transitionend', pageChanged, true)
+        doc.addEventListener('animationend', pageChanged, true)
+        doc.addEventListener('scroll', pageChanged, { passive: true, capture: true })
+        win.addEventListener('popstate', pageChanged)
+        win.addEventListener('resize', resized)
+        storage?.onChanged.addListener(storageChanged)
+        Janice.runViews.add(runUpdated)
         syncWithPanel()
+        scanPage()
         render()
+        void restore()
       },
       open,
       close,
       destroy() {
         observer.disconnect()
         doc.removeEventListener('pointerdown', outside, true)
+        doc.removeEventListener('transitionend', pageChanged, true)
+        doc.removeEventListener('animationend', pageChanged, true)
+        doc.removeEventListener('scroll', pageChanged, true)
+        win.removeEventListener('popstate', pageChanged)
+        win.removeEventListener('resize', resized)
+        storage?.onChanged.removeListener(storageChanged)
+        Janice.runViews.delete(runUpdated)
         win.clearTimeout(closeTimer)
+        win.clearTimeout(refreshTimer)
+        inlineCoupon.destroy()
         host.remove()
       },
     }

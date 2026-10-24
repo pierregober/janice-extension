@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo product page — Janice Coupons</title>
+    <!-- Demo fixture only: a stand-in for a Sharper Image product page, with the schema.org Product data shape
+         observed on sharperimage.com on 2026-10-24. The browser tests serve it in place of the real site. -->
+    <script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[]}]</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Ionic Comfort Quadra Air Purifier","sku":"203520","image":"https://sharperimage.com/cdn/shop/files/quadra.svg","offers":[{"@type":"Offer","price":419.99,"priceCurrency":"USD","availability":"https://schema.org/InStock"}]}</script>
+    <meta property="og:type" content="product" />
+    <meta property="og:title" content="Ionic Comfort Quadra Air Purifier | Clean Air" />
+    <meta property="og:price:amount" content="419.99" />
+    <meta property="og:price:currency" content="USD" />
+    <style>
+      body { margin: 0; color: #1d1b20; background: #ffffff; font: 16px/1.5 system-ui, sans-serif; }
+      .banner { padding: 10px 16px; background: #5b2c91; color: #ffffff; text-align: center; font-weight: 600; }
+      main { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 32px; max-width: 1000px; margin: 32px auto; padding: 0 16px; }
+      img { width: 100%; border-radius: 12px; }
+      h1 { margin: 0 0 8px; font-size: 28px; }
+      .price { font-size: 24px; font-weight: 700; }
+      button { margin-top: 16px; padding: 12px 24px; border: 0; border-radius: 999px; background: #1d1b20; color: #ffffff; font: inherit; }
+    </style>
+  </head>
+  <body>
+    <p class="banner">DEMO PRODUCT PAGE — simulated for testing Janice Coupons. Not a real store; nothing is sold.</p>
+    <main>
+      <img src="/cdn/shop/files/quadra.svg" alt="" width="420" height="420" />
+      <div>
+        <h1>Ionic Comfort Quadra Air Purifier</h1>
+        <p class="price">$419.99</p>
+        <p>Four-stage filtration for rooms up to 600 square feet. Demo text only.</p>
+        <button type="button">Add to cart (does nothing)</button>
+      </div>
+    </main>
+  </body>
+</html>

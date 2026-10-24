@@ -1,0 +1,33 @@
+{
+  "recordType": "validation-notes",
+  "source": "Successful live report and screenshots inspected during this session; these notes preserve its observed results after the raw report was overwritten by a later blocked keyboard check.",
+  "startedAt": "2026-10-24T06:44:25.733Z",
+  "finishedAt": "2026-10-24T06:44:32.027Z",
+  "browser": "Chrome for Testing 153.0.8010.12",
+  "store": "Sharper Image",
+  "route": "/?cart=true",
+  "guestCart": { "itemCount": 1, "currency": "USD" },
+  "before": {
+    "fieldName": "discount_code",
+    "fieldEmpty": true,
+    "fieldRect": { "x": 795, "y": 491.859375, "width": 345, "height": 37 },
+    "outlineRect": { "x": 792, "y": 488.859375, "width": 351, "height": 43 },
+    "buttonSize": { "width": 89.34375, "height": 28 },
+    "buttonText": "Use code",
+    "largeReminderPresent": false,
+    "couponCardHidden": true,
+    "automaticInputEvents": 0,
+    "automaticChangeEvents": 0
+  },
+  "afterExplicitClick": {
+    "fieldContainsAFF15": true,
+    "inputEvents": 1,
+    "changeEvents": 1,
+    "merchantApplyClicks": 0,
+    "checkoutClicks": 0,
+    "buttonText": "Code entered",
+    "status": "AFF15 entered. Select Apply to check the discount."
+  },
+  "verified": "Live field decoration and explicit fill only; no redemption or savings claim.",
+  "laterChanges": "Final modal tab-order and status-placement refinements are browser-fixture verified. The later live keyboard attempt could not populate its guest cart; see keyboard-live-blocked.json."
+}

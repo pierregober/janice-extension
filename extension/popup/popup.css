@@ -80,8 +80,7 @@ p {
   flex: none;
   width: 28px;
   height: 28px;
-  border-radius: 7px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  object-fit: contain;
 }
 
 h1 {
@@ -103,11 +102,76 @@ h1 {
   text-transform: uppercase;
 }
 
+.settings {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.demo:not([hidden]) + .settings {
+  margin-left: 0;
+}
+
+.settings:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.settings:focus-visible {
+  outline-color: #ffffff;
+}
+
+.settings .icon {
+  width: 20px;
+  height: 20px;
+}
+
 .content {
   display: grid;
   gap: 12px;
   padding: 14px 16px 16px;
 }
+
+/* The page button snoozed on this store, with the way back. */
+.snoozed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand-text);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.manual-codes { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.manual-codes summary { cursor: pointer; color: var(--brand-text); font-weight: 650; }
+.manual-codes label { display: block; margin: 10px 0 5px; font-size: 13px; font-weight: 600; }
+.manual-codes textarea { display: block; width: 100%; min-height: 68px; padding: 8px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+.codes-help { margin-top: 6px; color: var(--muted); font-size: 12px; }
+.manual-codes .note { margin-top: 6px; }
 
 /* Store row */
 .store {
@@ -246,31 +310,41 @@ h1 {
   text-wrap: pretty;
 }
 
+/* A native <progress>, fully restyled: the element is the track, its value pseudo-element the fill. */
 .progress {
+  --indeterminate-duration: 1.3s;
+  /* Lets the indeterminate fill move in track widths (cqi). */
+  container-type: inline-size;
+  display: block;
+  width: 100%;
   height: 8px;
   margin-top: 12px;
-  overflow: hidden;
+  overflow: clip;
+  border: 0 solid;
   border-radius: 999px;
   background: var(--surface-2);
+  appearance: none;
 }
 
-.progress > span {
-  display: block;
-  width: var(--value, 40%);
-  height: 100%;
-  border-radius: inherit;
+.progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.progress::-webkit-progress-value {
+  border-radius: 999px;
   background: linear-gradient(90deg, var(--brand), var(--brand-2));
-  transition: width 0.4s ease;
+  transition: inline-size 0.4s ease;
 }
 
-.progress.is-indeterminate > span {
-  width: 40%;
-  animation: slide 1.3s ease-in-out infinite;
+.progress:indeterminate::-webkit-progress-value {
+  animation: slide var(--indeterminate-duration) ease-in-out infinite;
 }
 
 /* Coupon cards */
 .coupons {
   display: grid;
+  max-height: 224px;
+  overflow: auto;
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -292,6 +366,8 @@ h1 {
 }
 
 .ticket {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 3px 10px;
   border: 2px dashed var(--brand-text);
   border-radius: 8px;
@@ -495,29 +571,33 @@ button:disabled {
   }
 }
 
+/* A 40% segment crossing the track; the fill is laid out at the left even in right-to-left text. */
 @keyframes slide {
+  from,
+  to {
+    inline-size: 40%;
+    margin-right: auto;
+  }
   from {
-    transform: translateX(-100%);
+    translate: -100%;
   }
   to {
-    transform: translateX(250%);
+    translate: 100cqi;
   }
 }
 
+/* Slower, not stopped, so it still shows that work is going on. */
 @media (prefers-reduced-motion: reduce) {
   .spinner,
   .is-trying .coupon-state::before {
-    animation: none;
-    border-right-color: currentColor;
+    animation-duration: 2.4s;
   }
 
-  .progress.is-indeterminate > span {
-    width: 100%;
-    animation: none;
-    opacity: 0.5;
+  .progress {
+    --indeterminate-duration: 10s;
   }
 
-  .progress > span {
+  .progress::-webkit-progress-value {
     transition: none;
   }
 }

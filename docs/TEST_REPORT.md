@@ -1,14 +1,91 @@
 # Janice Coupons 0.1.0 — test report
 
-October 23, 2026 · macOS 26 (Darwin 25.6.0) · Node 24.14.0 · installed Google Chrome 155.0.8059.86 ·
+Updated October 24, 2026 · macOS 26 (Darwin 25.6.0) · Node 24.14.0 · installed Google Chrome 155.0.8059.86 ·
 automation: Playwright 1.63.0 with Chrome for Testing 153.0.8010.12 · build: uncommitted working tree (the
 repository has no commits yet).
 
 Two kinds of evidence are kept apart here. **Fixture (Demo)** results come from the simulated checkout in
 `fixtures/demo-checkout/` and prove the logic and the wiring; they say nothing about the real store. **Live**
-results come from the real U.S. Sharper Image checkout.
+results come from the real U.S. Sharper Image cart drawer or checkout, with the surface identified below.
 
 ## Summary
+
+- **Native Apply and serial drawer testing (October 24, 2026, 08:04 UTC):** clicking the small **Use code**
+  control now starts the shared coupon runner, animates each candidate into the verified drawer field, clicks
+  the merchant's dedicated Apply button, and reads the actual response before trying the next candidate.
+  The control becomes **Stop** during testing; progress and results stay beside the field rather than opening
+  the large panel. Detection alone makes no coupon changes.
+
+  **Live verified with the full extension in Chrome for Testing 153:** one fresh guest cart, no applied code,
+  USD $159.99. A temporary test provider supplied `JANICETEST0`, then `AFF15`. Native Apply rejected the first
+  with “Promo code JANICETEST0 is not valid or does not meet requirements.” AFF15 was accepted, and an
+  independent `/cart.js` read confirmed USD $144.99 with AFF15 applicable. The shared stored run and compact
+  result both reported **You save $15.00 with AFF15**. Event traces from that run show each typed prefix about
+  85 ms apart; at the owner's request, entry is now instant, one input event per code, checked in the drawer
+  browser tests but not re-run live. The same traces show
+  exactly two serial Apply clicks, no overlapping update, and zero checkout clicks. AFF15 stayed applied at
+  the end of the extension run. A separate native Remove afterwards restored $159.99 with no active codes.
+  No checkout, contact or payment controls were operated. The shipped provider still contains only AFF15.
+  [Sanitized report and before/progress/result screenshots](evidence/drawer-apply-2026-10-24/).
+
+  This run verifies the drawer's accepted/rejected responses, native Apply, animated typing, result comparison
+  and post-evidence native removal. Drawer Stop, winner reapplication, draft restoration and cart changes are
+  fixture/browser verified; they were not additional live scenarios. A later spacing adjustment to the compact
+  feedback passed all seven focused drawer browser checks; these live screenshots retain the earlier placement.
+  [Final spacing screenshot — Demo fixture only](evidence/drawer-apply-2026-10-24/demo-final-spacing.png).
+
+- **Animated outline update (October 24, 2026):** rainbow colors circulate in eight seconds inside the fixed
+  input outline. Individual corner radii replace the former uniform 4–24px clamp, with percentage/elliptical
+  geometry and CSS overlap scaling respected. The small button and field layout stay fixed. Reduced motion
+  keeps the rainbow static, and forced colors use a static system-color border. This styling update preceded
+  the native Apply integration above.
+  Checked in Chrome for Testing with two new animation/radius tests, the four existing drawer browser tests,
+  and six component unit tests. Animation advances without moving the mask; sharp, pill, asymmetric/elliptical
+  and oversized CSS-normalized corners match; input/change/Apply counters remain zero during decoration.
+
+- **Historical fill-only inline control (2026-10-24 06:44 UTC; superseded by native Apply above):** the large reminder was replaced by a thin,
+  static rainbow outline around the promo field and a small **Use code** pill. The rainbow stops come from
+  the live [usejanice.com hero form border](https://usejanice.com/). Decoration does not fill or focus; clicking **Use code** enters
+  the first provider candidate with native input/change events. A different shopper draft is preserved.
+  At that revision Store Apply/Checkout controls remained untouched; filling claimed no redemption or savings.
+
+  **Live verified at 06:44 UTC, Chrome for Testing 153:** a fresh one-item guest cart opened through
+  `/?cart=true` showed the actual `discount_code` field with the outline and an 89×28px control. No card or
+  old reminder opened. Clicking **Use code** filled AFF15 and dispatched exactly one input and one change
+  event; Apply and Checkout click counters stayed zero. The field and nearby store controls remained usable.
+  This earlier record verifies only the field helper. The later 08:04 UTC run verifies drawer redemption.
+  [Live notes/screenshots and desktop/mobile fixtures](evidence/inline-coupon-2026-10-24/).
+  Final modal tab-order and feedback-placement refinements pass browser fixtures. A later live keyboard check
+  returned an empty guest cart after API setup and could not reach the promo input; keyboard behavior on the
+  real modal remains unverified. Its blocked record is retained separately from the successful fill notes.
+
+- **Original Shopify cart-drawer reminder (superseded by the inline control):** a visible promo/discount/coupon field inside
+  `shopify-section-cart-drawer` or its section variants previously triggered **You could save on this order**
+  with **View coupons**. It was tested in four browser fixtures before the owner requested the quieter inline
+  design. The current source and tests implement the field outline/button described above.
+
+  **Live distinction:** read-only inspection at 06:20 UTC confirmed the real drawer's `discount_code` input and
+  its modal ancestor's hidden/open behavior. Later extension-loaded validation did not reach a populated
+  drawer: after the guest-cart setup, a signup dialog initially blocked Cart, and the final retry opened Cart
+  but its discount input never appeared within 30 seconds. No coupon or checkout action occurred. The reminder
+  itself was **fixture/browser verified, not live verified**. This blocked historical attempt is separate from
+  the later successful native Apply run.
+  [Inspection, blocked live attempt, and labeled Demo reminder screenshot](evidence/cart-drawer-2026-10-24/).
+
+- **Promo discovery and batch overlay (2026-10-24 05:39 UTC, October 23 locally):** read-only detection of
+  promo fields on Sharper Image, optional shopper codes, deduplicated serial batches, a top-layer non-modal
+  overlay with an attempt log, and protection for shopper discount edits during pending operations. A new live
+  `batch-overlay` run in Chrome for Testing 153 used the shipped host permissions and provider data. Opening
+  the card left checkout unchanged; it detected the promo field. Entering `JANICETEST0, aff15` yielded **2**
+  unique candidates including the bundled AFF15. AFF15 was accepted ($159.99 → $144.99), JANICETEST0 was
+  rejected with “Enter a valid discount code or gift card”, and AFF15 was reapplied and independently verified
+  at $144.99. `overlayInTopLayer: true`, `promoDetected: true`, and no contact/payment fields were filled or
+  order submitted. [Report and screenshots](evidence/live-2026-10-24-batch-overlay/).
+
+  This live run precedes final UI-only adjustments: wrapping maximum-length codes, using a neutral shopper-code
+  label in the launcher after attempts, and restoring prior shopper codes into a reopened popup's retry draft.
+  Those are browser/fixture checked. Concurrent shopper
+  discount edits and dynamically inserted controls remain fixture/browser evidence, not new live scenarios.
 
 - **Live, verified on the real checkout:** Janice found the U.S. Sharper Image checkout, entered AFF15 in the
   store's own discount field, read the store's acceptance and reported **$15.00 of verified savings** on the
@@ -43,30 +120,90 @@ results come from the real U.S. Sharper Image checkout.
   itself in Chrome after each change, along with open Sharper Image and Demo checkout tabs, and Ctrl+C restores
   the plain build. Checked in Chrome for Testing 153 with the real `npm start` (on a copy of the repository) and
   in a browser test; not checked in branded Google Chrome.
-- **Fixture (Demo):** 81 unit and fixture tests and 10 browser tests pass, covering every row of the
-  ACCEPTANCE.md fixture table.
+- **Standards pass (2026-10-24, at the owner's request):** the extension was checked against Chrome's
+  Manifest V3 extension guidance and current web-platform guidance. Changes:
+  - the popup and panel progress bars are native progress bars, labeled and announcing the code being tried;
+  - the popup declares its light and dark themes before it draws, and the panel and page-button card theme
+    their scrollbars;
+  - under reduced motion, spinners and the moving bar slow down instead of stopping;
+  - the background and page scripts use async/await, and every event listener handles its errors.
+
+  Coupon testing is unchanged: all unit and browser tests pass, and the new bars were checked by eye in Chrome
+  for Testing 153, light and dark, with reduced motion. The live checkout was not re-run for this pass.
+  Two guidelines are deliberately not followed:
+  - **No `tabs` permission.** The checkout's address is readable through the store's host access or the toolbar
+    click, and `tabs` would add a browsing-history warning.
+  - **The page button keeps its own hover handling.** The platform's interest invokers and hint popovers need
+    Chrome 142 and 151; the extension supports Chrome 116 and later.
+- **Movable page button (2026-10-24, at the owner's request):** the button slides up and down the right edge.
+  Drag its tab, or focus it and use the up and down arrow keys. It stays inside the window and keeps its spot on
+  later pages and in other open tabs. Near the top, its card opens below it. Checked in Chrome for Testing 153 on
+  the Demo checkout (drag, reload, keys, card placement) and in unit tests. Not checked on the live store.
+- **Tips on product pages (2026-10-24, at the owner's request):** the page button's card shows tips on product
+  pages, laid out like Honey's tips panel:
+  - the product, read from the page's schema.org Product data, with Save;
+  - the coupon count and Go to checkout;
+  - a 30-day price trend with a hover and keyboard readout and a price history table, and Watch for price
+    drops;
+  - Rate this tip.
+
+  Prices, saves, watches and ratings stay in local storage. Rewards show as not available, and there are no
+  background price checks. Checked in unit tests and in Chrome for Testing 153 on a Demo product page served
+  in place of sharperimage.com, in light and dark.
+- **Gear menu and settings page (2026-10-24, at the owner's request):** the gear in the card's header opens a
+  menu: Hide on this page, Snooze for 24 hours, Snooze on this site and Go to settings. Go to settings opens
+  Janice's settings page in a tab, where the snoozes can be ended and price remembering turned off or cleared.
+  The toolbar popup says when the button is snoozed on the store, with Show it again, and its gear opens the
+  settings. Checked in unit tests and in Chrome for Testing 153 on the Demo product page: the menu sits under
+  the gear and inside the window; Escape closes the menu alone and focus goes back to the gear; Go to settings
+  opens the settings tab; Snooze on this site holds across a reload until Show again on the settings page;
+  Hide on this page lasts until a reload. Screenshots in light and dark, the settings page also at 375 px.
+- **Live (read-only, 2026-10-24):** in a fresh guest profile in Chrome for Testing 153, on
+  `/products/smartphone-photo-printer-by-sharper-image`, the tips card showed the product, $189.99, "First
+  price seen" and 1 coupon, and kept that day's price. The gear menu opened under the gear, Escape closed it
+  alone with focus back on the gear, and Snooze on this site hid the button, also after a reload, until the
+  snooze was cleared in storage. Nothing on the store was clicked or changed.
+- **Fixture (Demo):** the latest full runs passed **178 unit/fixture tests and 25 browser tests**, including
+  native drawer Apply/Remove, serial invalid/valid attempts, winner reapplication and both typing/pending Stop.
+  Every row of the ACCEPTANCE.md fixture table remains covered. An earlier batch-overlay browser test failed
+  once, then passed on its own and in three later runs.
 - **Not verified live:** the real toolbar click (`activeTab`) and the page button in branded Google Chrome (the
   page button was checked in Chrome for Testing), a cart edit during a live run, and totals once an address is
   entered, among others listed below.
 
 ## Automated checks (fixture — not live evidence)
 
-`npm test`: **81 tests, all passing** (Node test runner + jsdom, about 11 s). `npm run test:e2e`: **10 tests,
-all passing** (the built extension in Chrome for Testing 153, the development build's automatic reload, and the
-UI preview page, about 40 s).
+Latest complete runs on October 24: `npm test` **178 passing** (Node test runner + jsdom),
+`npm run test:e2e` **25 passing** (the built extension in Chrome for Testing 153, development reload, and UI
+preview). Browser checks include seven drawer scenarios, two animated-outline/radius scenarios, shopper
+batches, popup retry restoration, top-layer rendering, dynamic controls, a 64-character code at 390 px, tips
+on a product page, and the gear menu with the settings page.
+These deterministic runs simulate store responses and do not establish live coupon validity.
+
+After the final feedback-spacing and draft-error handling adjustments, `npm test` passed **177/177** again,
+the seven drawer browser checks passed **7/7** (40.55 s), and a focused accepted-result browser check passed
+for the final screenshot. The collision checks keep **Try again** and status away from the merchant's coupon
+feedback, discount title, cart total and disclosure. `npm run build` succeeded with 30 extension files. The
+earlier complete browser run was **23/23**; the final layout changes were verified by these focused reruns.
 
 | Area | What is tested | Where |
 | --- | --- | --- |
+| Cart field assist and shared runner | Visible Shopify drawer promo fields + candidates get a moving rainbow outline and small Use code button; decoration does not write/focus/open a card. Explicit Use code starts the same worker/controller run, types and clicks native Apply, shows Stop/progress/result, and creates no large panel. Serial invalid/valid batches remove between accepted attempts and reapply the lowest verified total; Stop during typing prevents Apply and restores the draft, while Stop after Apply settles and restores the original cart. Hidden/collapsed/offscreen, gift/search-only and empty-provider cases stay quiet. Scroll, replacement, mobile layout and deferred stale provider replies are covered | `tests/e2e/cart-drawer.test.js`, `tests/cart-drawer-signal.test.js`, `tests/inline-coupon.test.js` |
+| Drawer adapter | Exact safe Apply/Remove selectors and verified origin; whitelisted `/cart.js` fields; only applicable codes count; changing discount line keys do not change cart identity. A replacement component plus stable matching UI/server outcome is required; READY alone, stale errors, DOM/server mismatches, unreadable/throttled responses and never-settling updates cannot claim success. Cart/discount/draft changes between typing and Apply prevent the click; original or shopper-edited drafts are preserved safely | `tests/drawer-adapter.test.js`, `tests/fixtures/drawer/` |
+| Animated coupon entry and outline | Native character input events followed by one change; reduced-motion entry, cancellation, shopper edits, stale/replaced/disabled fields and bounded typing. Moving colors preserve a fixed outline and individual square/pill/elliptical corners; reduced motion and forced colors stay static | `tests/coupon-entry.test.js`, `tests/e2e/rainbow-outline.test.js` |
+| Discovery and batches | Metadata-based promo hints, unrelated/private field exclusions, collapsed and dynamic fields, no value reads/mutations; separator parsing, validation/deduplication/caps; manual UI and mutation refresh; worker refuses invalid batches/unsupported layouts before start | `tests/checkout-discovery.test.js`, `tests/coupon-candidates.test.js`, `tests/coupon-ui.test.js`, `tests/service-worker-batch.test.js` |
 | Money | Displayed amounts to integer cents (U+2212 minus, thousands separators), ambiguous text refused, display formatting without float drift | `tests/money-and-compare.test.js` |
 | Comparison | Lowest verified comparable total wins; baseline keeps ties and worse; rejected/unverified/other-basis attempts never win | `tests/money-and-compare.test.js` |
 | Provider | AFF15 with the supplied terms (unknowns stay null), empty list for other stores, malformed/unreadable data as a provider error with retry, bundled copy identical to `data/mock-coupons.json` | `tests/provider.test.js` |
 | Adapter on live markup | Sanitized captures of the real order summary: total read from the shown copy (not the lagging roller), USD, AFF15, unchanged subtotal, cart identity, checkout-path detection | `tests/adapter.test.js` |
 | Adapter on the Demo checkout | Accept, reject (store message), remove, stalled roller, collapsed summary opened only after Try, missing controls, unreadable total, other currency, gift card, never-settling update → unverified, discount field inside the payment form refused | `tests/adapter.test.js` |
 | ACCEPTANCE fixture table | Every row (see below) end to end through the real adapter, controller and provider | `tests/run-controller.test.js` |
-| Decision paths | Best of several kept and re-applied, winner re-apply refused, winner vanishing before the final check, codes changed by someone else, other checkout page, run deadline, Stop before anything, busy checkout, basis change, improvement not holding | `tests/run-controller-paths.test.js` |
-| Content entry and popup | Detection only reads, one run per page, Demo panel with progress, Stop and the savings figure, Stop relay; popup states (ready, running, result, unsupported, store page, other sites, unreadable pages), coupon cards with the advertised offer and what happened to each code, Copy | `tests/content-and-popup.test.js` |
-| Page button | The manifest's page-button scripts: a tab only on Sharper Image pages, once per page, that asks nothing until hovered or clicked; its card counts the coupons, links to the checkout on store pages and offers Try coupons at checkout; unsupported checkouts, no coupons, provider errors and failed reads explained without a Try button; refused starts, Escape, outside clicks, Close, Copy. With main.js on the Demo checkout: Try coupons from the card runs, the button steps aside for the panel and shows the result after Close | `tests/launcher.test.js` |
-| Package | MV3, `activeTab`/`scripting`/`storage`, host access to `https://sharperimage.com/*` only, one automatic content script (the page button: top frame of the store's pages, no checkout logic), every loaded file present, no remote code/eval/network, only store and Demo hosts injected; `npm run package` zips exactly the extension, byte for byte, with `manifest.json` at the root, reproducibly; `npm run build` writes exactly the extension's files to `build/`, byte for byte, updates it in place (stale files removed, the folder kept) and leaves alone a folder that isn't a build; `npm start`'s development build differs only by the reloader as the service worker's entry and the Demo checkout's host, and a plain build over it takes both out | `tests/package.test.js` |
+| Decision paths | Best of several kept and re-applied, winner re-apply refused, winner vanishing before the final check, codes changed by someone else (including pending apply/remove and restoration), other checkout page, run deadline, Stop before anything, busy checkout, basis change, improvement not holding | `tests/run-controller-paths.test.js` |
+| Content entry and popup | Detection only reads, one run per page, Demo panel with progress, Stop and the savings figure, Stop relay; popup states (ready, running with a native progress bar that announces the code being tried, result, unsupported, store page, other sites, unreadable pages), coupon cards with the advertised offer and what happened to each code, Copy | `tests/content-and-popup.test.js` |
+| Page button | The manifest's page-button scripts: a tab only on Sharper Image pages, once per page, that asks nothing until hovered or clicked; its card counts the coupons, links to the checkout on store pages and offers Try coupons at checkout; unsupported checkouts, no coupons, provider errors and failed reads explained without a Try button; refused starts, Escape, outside clicks, Close, Copy. With main.js on the Demo checkout: Try coupons from the card runs, the button steps aside for the panel and shows the result after Close. Moving it: a drag slides it along the right edge only after a few pixels (a press alone stays a click), and the click that ends a drag doesn't open the card. It stays inside the window; the arrow keys move it 15px; the spot is kept, applied before the button shows, and followed in other tabs; the card opens below when the button is high up. In Chromium: a real mouse drag, the spot after a reload, the keys, the card below | `tests/launcher.test.js`, `tests/launcher-drag.test.js`, `tests/e2e/launcher-drag.test.js` |
+| Tips | The product from the page's schema.org Product (og fallback, https images only), none off product pages or without a price; one price per day kept for 90 days and 200 products, none when turned off; the view's trend note, summary, chart points, keyboard readout and history table; Save, Watch (and the drop since watching), Rate; the card in tips mode on a product page with the coupon count and today's price kept. In Chromium on a Demo product page: product, coupons, trend from seeded prices, the image, the card inside the window, Watch kept across a reload | `tests/tips.test.js`, `tests/e2e/tips.test.js` |
+| Gear menu, snooze and settings | The gear opens an auto popover of four plain buttons on every page with the button. Hide on this page keeps nothing and the next page shows the button; Snooze for 24 hours hides it on every store and in other tabs, keeps no tips price while it lasts, and ends after 24 hours; Snooze on this site hides it on the store until turned back on; Go to settings asks the service worker, which opens the settings page; a snoozed button also hides the drawer's Use code control and asks nothing; turning a snooze off brings open pages back. Opening the menu pins the card; Escape closes the menu, not the card; closing hands focus back to the gear; without anchor positioning the menu is placed under the gear by hand. The settings page shows and ends each snooze, and turns price remembering off or clears it; the popup says when the button is snoozed on its store, with Show it again, and its gear opens the settings. In Chromium: the menu under the gear and inside the window, Escape and focus, the settings tab, the store snooze across a reload and back from the settings page, Hide on this page until a reload | `tests/launcher-menu.test.js`, `tests/options.test.js`, `tests/content-and-popup.test.js`, `tests/service-worker-batch.test.js`, `tests/e2e/launcher-menu.test.js` |
+| Package | MV3, `activeTab`/`scripting`/`storage`, a settings page opened in a tab, scoped Sharper Image host access and separate read-only `shop.app` recognition; unverified Shopify recognition never enables testing. Every loaded file is present; executable logic is bundled, with no remote code/eval. The drawer permits only the exact same-origin read-only `/cart.js` request; provider data stays local. `npm run package` zips exactly the extension reproducibly, with `manifest.json` at the root; build copies files byte for byte, removes stale build files safely and preserves other folders; development reload is removed by a plain build | `tests/package.test.js` |
 | Automatic reload | The reload channel turns away web pages, sends extension pages the current build at once, each new build, keep-alive pings and the final switch, over a real WebSocket handshake | `tests/reload-server.test.js` |
 | Automatic reload (browser) | The development build in Chromium connects to the channel; a newer build reloads Janice and the open Demo checkout, whose page button then runs the changed script; the final switch leaves the plain build running | `tests/e2e/dev-reload.test.js` |
 | Browser (Demo) | Every test runs with the page button on the Demo page, as on the store. The page button: hover → coupon count, Try coupons from its card, steps aside for the panel, result after Close; none where no store is detected. Popup → service worker → injected scripts → panel; Demo label; result after reopening; run survives closing the popup; three simultaneous starts → one run; Stop during an update restores and checks; reload → interrupted; unsupported page; an unrelated host is never injected into | `tests/e2e/extension.test.js` |
@@ -90,7 +227,43 @@ ACCEPTANCE.md fixture scenarios (USD, explicit eligible spend, zero tax/shipping
 | Missing controls, unreadable total, timeout | Unsupported / unsupported / unverified; nothing fabricated | `missing controls, an unreadable total…`, `a checkout that never settles…` |
 | Final application or restoration fails | Restore refused → error with the state now shown; hanging removal → unverified; dropped winner never reported as applied | `restoring the original code fails…`, `a removal that never settles…`, `a winning code the store drops…`, decision-path tests |
 
-## Live validation (real Sharper Image checkout)
+## Live validation — Sharper Image cart drawer, October 24
+
+At 08:04:14–08:04:32 UTC, Codex ran the built extension in Chrome for Testing 153.0.8010.12 with a fresh
+temporary guest profile and one $159.99 item. The test copy preserved the shipped manifest's host permissions;
+only its local provider data changed to the temporary candidates `JANICETEST0`, then `AFF15`. The actual small
+**Use code** control initiated the worker/controller run. The script did not call the adapter directly or open
+checkout. No corrective setup retry was needed.
+
+| Stage | Store response / independent read | Extension observation |
+| --- | --- | --- |
+| Baseline | USD `15999`, no applied codes, one unchanged item | Captured before typing or Apply |
+| First native Apply | `JANICETEST0` rejected: “Promo code JANICETEST0 is not valid or does not meet requirements.” | Attempt recorded as rejected; no fabricated discount |
+| Second native Apply | AFF15 applied; independent `/cart.js` total USD `14499`, `AFF15` applicable | Attempt accepted; final shared result `better`, `savingsMinor: 1500` |
+| End of extension run | AFF15 remains applied at $144.99 | **Try again** / **You save $15.00 with AFF15**, no large panel |
+| Separate post-evidence cleanup | Native AFF15 Remove, then independent total `15999`, no active codes | Test cart restored after the successful result was captured |
+
+The coupon-only event trace records `J` through `JANICETEST0`, then `A` through `AFF15`, at roughly 85 ms
+between letters. Exactly two Apply clicks occurred, with no overlap and no checkout clicks. Screenshots show
+the field, merchant controls and compact Janice feedback only. The JSON retains amounts, applicable code
+names, item variant/quantity/original price, local run state and coupon event times; it contains no cart token,
+cookies, contact/payment values or unrelated browsing data.
+
+[Live report](evidence/drawer-apply-2026-10-24/report.json),
+[before](evidence/drawer-apply-2026-10-24/before.png),
+[progress](evidence/drawer-apply-2026-10-24/progress.png),
+[result](evidence/drawer-apply-2026-10-24/result.png),
+[native-control research](evidence/drawer-apply-2026-10-24/native-research.json).
+
+The adapter is limited to the inspected controls on `https://sharperimage.com`. Field discovery on other
+drawers does not establish automatic testing support; `shop.app` recognition remains read-only and unverified.
+The live trace proves one invalid/valid pair. Multiple improving candidates, winner reapplication, stopping
+during typing/pending Apply, original-draft restoration and concurrent shopper edits are deterministic
+fixture/browser scenarios. The current compact-feedback spacing was refined after these live screenshots and
+passed the seven focused drawer checks. [Final spacing — Demo only](evidence/drawer-apply-2026-10-24/demo-final-spacing.png)
+shows the updated layout, not another live redemption run.
+
+## Earlier live validation — Sharper Image checkout, October 23
 
 How: `scripts/live-check.js`, one item in a new guest cart, the real checkout, Janice started from its popup.
 The extension ran from a temporary copy whose manifest adds host access to `https://sharperimage.com/*`,
@@ -146,7 +319,8 @@ two attempts failed while building their carts (before Janice ran) and were reru
   has host access instead of the `activeTab` grant a click gives. The shipped `activeTab` path (click → popup →
   tab URL → injection) has not been exercised by a real click. Use the manual steps below.
 - **The page button in branded Google Chrome**, and on store pages other than the home page and checkout
-  (product pages, collections, the cart drawer): it was checked live only in Chrome for Testing, on those two pages.
+  (product pages, collections): it was checked live only in Chrome for Testing. Drawer structure was inspected
+  live. The inline helper was checked in Chrome for Testing; branded Chrome remains untested.
 - **A cart edit during a live run** (for example a quantity changed in another tab): fixture and browser tests only.
 - **Totals after an address is entered**, when shipping and taxes are included: Janice never enters personal
   data, so every live comparison was before shipping and taxes.
@@ -162,9 +336,35 @@ two attempts failed while building their carts (before Janice ran) and were reru
 - **Updates that never settle:** not seen live (updates took 0.7–0.85 s); timeout handling is fixture-only.
 - **Assistive technology:** the panel and popup use roles, labels, live regions and visible focus, but have not been
   checked with a screen reader.
-- Other browsers, other locales, and other Sharper Image surfaces such as the cart drawer's own discount field.
+- **Additional drawer scenarios:** Stop, simultaneous starts, popup closure during a drawer run, shopper edits,
+  an existing discount being restored, winner reapplication, several applicable codes and timeout cases are
+  fixture/browser verified, not additional live drawer runs. Native drawer Apply/rejection/acceptance and
+  native Remove are verified by the October 24 run above.
+- Other browsers and other locales.
 
 ## Manual validation in your own Chrome
+
+For the batch overlay: open **Add your own codes** in the popup or page card, paste your candidates separated
+by commas/new lines, and click **Try coupons**. Expect a unique candidate count, serial progress and a **codes
+tried** disclosure showing each store outcome. Reopen the popup afterwards: its retry draft should include prior
+shopper codes. Test **Stop** during a pending application and compare the restored coupon/total with the baseline.
+
+For the cart drawer, add an item through the store UI and open Cart on `https://sharperimage.com`. Expect a
+thin moving rainbow outline following the visible promo input's corner radii, plus a small **Use code**
+button. Opening the drawer or showing the outline must not type, focus or apply anything. Record the current
+cart total, applied codes and any draft in the field. Click **Use code**: Janice should type each candidate
+visibly, click the merchant's Apply automatically, wait for its response, then continue serially. There is no
+need to press Apply yourself. The small button becomes **Stop** and progress stays near the field. At the end,
+compare the accepted code and savings with the merchant's cart; rejection or an unverified response must not
+claim savings. The lowest verified improvement stays applied; otherwise the original discount is restored
+and checked. The original input draft is restored when safe, while newer shopper edits are preserved.
+
+The shipped provider has one candidate, AFF15. To exercise several codes, use **Add your own codes** in the
+popup or card and start **Try coupons** there; this uses the same runner and compact drawer feedback. Try an
+invalid candidate, Stop during typing, Stop during a pending Apply, and close/reopen the popup. Compare each
+final cart/code state with the baseline. Scroll, resize, close/reopen and redraw the drawer: the decoration
+should follow the current visible field. Native Apply and Remove must remain usable. Remove any code you do
+not want to keep after testing. Do not operate checkout or payment submission controls for this drawer check.
 
 These steps cover what automation could not: the real toolbar button (`activeTab`) and the page button in
 branded Google Chrome.

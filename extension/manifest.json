@@ -6,16 +6,20 @@
   "description": "Tries coupon codes on the Sharper Image checkout when you click Try coupons, and keeps only verified savings.",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["https://sharperimage.com/*"],
+  "host_permissions": ["https://sharperimage.com/*", "https://shop.app/*"],
   "content_scripts": [
     {
-      "matches": ["https://sharperimage.com/*"],
-      "js": ["shared/money.js", "shared/messages.js", "shared/icons.js", "content/stores.js", "content/launcher.js", "content/launcher-main.js"],
+      "matches": ["https://sharperimage.com/*", "https://shop.app/checkout/*"],
+      "js": ["shared/money.js", "shared/messages.js", "shared/icons.js", "shared/coupon-candidates.js", "shared/snooze.js", "content/shopify.js", "content/stores.js", "content/checkout-discovery.js", "content/inline-coupon.js", "content/tips.js", "content/launcher.js", "content/launcher-main.js"],
       "run_at": "document_idle"
     }
   ],
   "background": {
     "service_worker": "service-worker.js"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
   },
   "action": {
     "default_title": "Janice Coupons",

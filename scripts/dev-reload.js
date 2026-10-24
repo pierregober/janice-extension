@@ -19,8 +19,9 @@ importScripts('service-worker.js')
   'use strict'
 
   const RELOADED = 'dev:reloaded'
-  // The pages the page button runs on in this build: the store, and the Demo checkout.
-  const isJanicePage = url => /^https:\/\/sharperimage\.com\//.test(url) || /^http:\/\/127\.0\.0\.1(:\d+)?\/demo-checkout\//.test(url)
+  // The pages the page button runs on in this build: the store, its checkout on shop.app, and the Demo checkout.
+  const isJanicePage = url =>
+    /^https:\/\/sharperimage\.com\//.test(url) || /^https:\/\/shop\.app\/checkout\//.test(url) || /^http:\/\/127\.0\.0\.1(:\d+)?\/demo-checkout\//.test(url)
 
   function connect() {
     const socket = new WebSocket(RELOAD_URL)

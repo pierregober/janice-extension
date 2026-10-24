@@ -13,44 +13,48 @@ const { buildExtension } = require('../scripts/build.js')
 const manifest = JSON.parse(read('extension/manifest.json'))
 const extensionFile = file => path.join(ROOT, 'extension', file)
 
-test('Manifest V3 named from the editable defaults, opened from the toolbar', () => {
+test('Manifest V3 named from the editable defaults, opened from the toolbar, with a settings page in a tab', () => {
   assert.equal(manifest.manifest_version, 3)
   assert.equal(manifest.name, 'Janice Coupons')
   assert.equal(manifest.action.default_popup, 'popup/popup.html')
   assert.equal(manifest.background.service_worker, 'service-worker.js')
+  assert.deepEqual(manifest.options_ui, { page: 'options/options.html', open_in_tab: true })
 })
 
-test('minimal permissions: activeTab, scripting and storage; host access to sharperimage.com only, where the page button runs', () => {
+test('minimal permissions: activeTab, scripting and storage; host access to sharperimage.com and shop.app only, where the page button runs', () => {
   assert.deepEqual(manifest.permissions, ['activeTab', 'scripting', 'storage'])
-  assert.deepEqual(manifest.host_permissions, ['https://sharperimage.com/*'])
+  assert.deepEqual(manifest.host_permissions, ['https://sharperimage.com/*', 'https://shop.app/*'])
   assert.equal(manifest.optional_host_permissions, undefined)
   assert.equal(manifest.web_accessible_resources, undefined)
   assert.equal(manifest.externally_connectable, undefined)
 
-  // The only script that runs by itself is the page button, in the top frame of the store's pages; the checkout
-  // logic is still injected only when the popup or the button's card asks.
+  // The only script that runs by itself is the page button, in the top frame of the store's pages and of shop.app's
+  // checkout pages; the checkout logic is still injected only when the popup or the button's card asks.
   assert.equal(manifest.content_scripts.length, 1)
   const [launcher] = manifest.content_scripts
-  assert.deepEqual(launcher.matches, ['https://sharperimage.com/*'])
-  assert.deepEqual(launcher.js, ['shared/money.js', 'shared/messages.js', 'shared/icons.js', 'content/stores.js', 'content/launcher.js', 'content/launcher-main.js'])
+  assert.deepEqual(launcher.matches, ['https://sharperimage.com/*', 'https://shop.app/checkout/*'])
+  assert.deepEqual(launcher.js, ['shared/money.js', 'shared/messages.js', 'shared/icons.js', 'shared/coupon-candidates.js', 'shared/snooze.js', 'content/shopify.js', 'content/stores.js', 'content/checkout-discovery.js', 'content/inline-coupon.js', 'content/tips.js', 'content/launcher.js', 'content/launcher-main.js'])
   assert.equal(launcher.run_at, 'document_idle')
   assert.equal(launcher.all_frames, undefined)
   assert.equal(launcher.css, undefined)
 })
 
-test('only the store and the local Demo hosts are ever injected into', () => {
+test('only the store, its shop.app checkout and the local Demo hosts are ever injected into', () => {
   const { isCandidateHost } = require('../extension/content/stores.js')
-  for (const host of ['sharperimage.com', 'www.sharperimage.com', 'SharperImage.com', 'localhost', '127.0.0.1']) assert.equal(isCandidateHost(host), true, host)
-  for (const host of ['example.com', 'sharperimage.com.example.net', 'shop.sharperimage.co', '[::1]', '']) assert.equal(isCandidateHost(host), false, host)
+  for (const host of ['sharperimage.com', 'www.sharperimage.com', 'SharperImage.com', 'shop.app', 'localhost', '127.0.0.1']) assert.equal(isCandidateHost(host), true, host)
+  for (const host of ['example.com', 'sharperimage.com.example.net', 'shop.sharperimage.co', 'shop.app.example.net', 'constructor', '[::1]', '']) assert.equal(isCandidateHost(host), false, host)
 })
 
 test('every file the extension loads exists', () => {
   const imported = /importScripts\(([^)]*)\)/.exec(read('extension/service-worker.js'))[1].match(/'[^']+'/g).map(name => name.slice(1, -1))
   const popupScripts = [...read('extension/popup/popup.html').matchAll(/src="\.\.\/([^"]+)"|src="([^"]+)"/g)].map(match => match[1] ?? `popup/${match[2]}`)
+  const optionsScripts = [...read('extension/options/options.html').matchAll(/src="\.\.\/([^"]+)"|src="([^"]+)"/g)].map(match => match[1] ?? `options/${match[2]}`)
   const files = [
     manifest.background.service_worker,
     manifest.action.default_popup,
     'popup/popup.css',
+    manifest.options_ui.page,
+    'options/options.css',
     'data/mock-coupons.json',
     ...Object.values(manifest.icons),
     ...imported,
@@ -58,11 +62,12 @@ test('every file the extension loads exists', () => {
     'content/main.js',
     ...manifest.content_scripts.flatMap(script => script.js),
     ...popupScripts,
+    ...optionsScripts,
   ]
   for (const file of files) assert.ok(fs.existsSync(extensionFile(file)), `${file} is missing`)
 })
 
-test('all executable code is bundled: no remote scripts, eval or network calls', () => {
+test('all executable code is bundled; only bundled data and the verified store cart are fetched', () => {
   const sources = []
   const walk = directory => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -79,7 +84,11 @@ test('all executable code is bundled: no remote scripts, eval or network calls',
     assert.doesNotMatch(source, /<script[^>]+src="https?:/i, file)
     assert.doesNotMatch(source, /\beval\(|new Function\(/, file)
     for (const call of source.match(/fetch\([^)]*\)/g) ?? []) {
-      assert.match(call, /chrome\.runtime\.getURL/, `${file}: only bundled files are fetched (${call})`)
+      const cartRead = file === 'extension/content/adapters/sharper-image-drawer.js' && /^fetch\('\/cart\.js',\s*\{/.test(call)
+      if (cartRead) {
+        assert.match(call, /method: 'GET'/)
+        assert.match(call, /credentials: 'same-origin'/)
+      } else assert.match(call, /chrome\.runtime\.getURL/, `${file}: only bundled files are fetched (${call})`)
     }
   }
 })
@@ -180,8 +189,8 @@ test('npm start: the development build adds only the reloader, and the Demo chec
     const [launcher] = manifest.content_scripts
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(outDir, 'manifest.json'), 'utf8')), {
       ...manifest,
-      host_permissions: ['https://sharperimage.com/*', 'http://127.0.0.1/*'],
-      content_scripts: [{ ...launcher, matches: ['https://sharperimage.com/*', 'http://127.0.0.1/*'] }],
+      host_permissions: ['https://sharperimage.com/*', 'https://shop.app/*', 'http://127.0.0.1/*'],
+      content_scripts: [{ ...launcher, matches: ['https://sharperimage.com/*', 'https://shop.app/checkout/*', 'http://127.0.0.1/*'] }],
       background: { service_worker: 'dev-reload.js' },
     })
     const worker = fs.readFileSync(path.join(outDir, 'dev-reload.js'), 'utf8')

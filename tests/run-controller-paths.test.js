@@ -9,7 +9,7 @@ const { createRunController } = require('../extension/content/run-controller.js'
 const STORE = { id: 'sharper-image-us', name: 'Sharper Image', currency: 'USD', isDemo: false }
 const RULES = { AFF15: 1500, TAKE15: 1500, SAVE20: 2000, BIG30: 3000 }
 
-function scriptedStore({ baseMinor = 20000, codes = [], onApply, onRead } = {}) {
+function scriptedStore({ baseMinor = 20000, codes = [], onApply, onRemove, onRead } = {}) {
   const state = { codes: [...codes], cart: 'cart-1', page: 'checkout-1', shippingIncluded: false, extraMinor: 0, reads: 0 }
   const log = []
   const read = () => ({
@@ -48,6 +48,7 @@ function scriptedStore({ baseMinor = 20000, codes = [], onApply, onRead } = {}) 
     async removeCode(code) {
       log.push(`remove ${code}`)
       state.codes = state.codes.filter(applied => applied !== code)
+      onRemove?.(code, state, log)
       return { status: 'removed', state: read() }
     },
   }
@@ -129,6 +130,102 @@ test('a different checkout page mid-run interrupts without touching it', async (
   assert.equal(result.kind, 'interrupted')
   assert.equal(result.restoration, 'unverified')
   assert.deepEqual(log, ['apply AFF15'])
+})
+
+test('a shopper code added while an application is pending is never removed by the next attempt', async () => {
+  const { adapter, state, log } = scriptedStore({
+    onApply: (code, current) => {
+      current.codes.push(code, 'SHOPPER10')
+      return { status: 'accepted' }
+    },
+  })
+  const { result } = await run(adapter, ['AFF15', 'BIG30']).start()
+
+  assert.equal(result.kind, 'cart-changed')
+  assert.equal(result.reason, 'codes-changed')
+  assert.equal(result.restoration, 'skipped')
+  assert.deepEqual(log, ['apply AFF15'])
+  assert.deepEqual(state.codes, ['AFF15', 'SHOPPER10'])
+})
+
+test('a shopper code added while the original code is being removed stops further mutations', async () => {
+  const { adapter, state, log } = scriptedStore({
+    codes: ['SAVE20'],
+    onRemove: (_code, current) => current.codes.push('SHOPPER10'),
+  })
+  const { result } = await run(adapter, ['AFF15', 'BIG30']).start()
+
+  assert.equal(result.kind, 'cart-changed')
+  assert.equal(result.reason, 'codes-changed')
+  assert.equal(result.restoration, 'skipped')
+  assert.deepEqual(log, ['remove SAVE20'])
+  assert.deepEqual(state.codes, ['SHOPPER10'])
+})
+
+test('restoration preserves a shopper code added after the last attempt', async () => {
+  const { adapter, state, log } = scriptedStore({ codes: ['SAVE20'] })
+  const controller = run(adapter, ['AFF15'], {
+    onUpdate: snapshot => {
+      if (snapshot.phase === 'restoring') state.codes.push('SHOPPER10')
+    },
+  })
+  const { result } = await controller.start()
+
+  assert.equal(result.kind, 'cart-changed')
+  assert.equal(result.reason, 'codes-changed')
+  assert.equal(result.restoration, 'skipped')
+  assert.deepEqual(log, ['remove SAVE20', 'apply AFF15'])
+  assert.deepEqual(state.codes, ['AFF15', 'SHOPPER10'])
+})
+
+test('restoration stops if a shopper code appears while removing our test code', async () => {
+  const { adapter, state, log } = scriptedStore({
+    codes: ['SAVE20'],
+    onRemove: (code, current) => {
+      if (code === 'AFF15') current.codes.push('SHOPPER10')
+    },
+  })
+  const { result } = await run(adapter, ['AFF15']).start()
+
+  assert.equal(result.kind, 'cart-changed')
+  assert.equal(result.reason, 'codes-changed')
+  assert.equal(result.restoration, 'skipped')
+  assert.deepEqual(log, ['remove SAVE20', 'apply AFF15', 'remove AFF15'])
+  assert.deepEqual(state.codes, ['SHOPPER10'])
+})
+
+test('restoration reports a shopper edit during reapplication of the original code', async () => {
+  const { adapter, state, log } = scriptedStore({
+    codes: ['SAVE20'],
+    onApply: (code, current) => {
+      if (code !== 'SAVE20') return null
+      current.codes.push(code, 'SHOPPER10')
+      return { status: 'accepted' }
+    },
+  })
+  const { result } = await run(adapter, ['AFF15']).start()
+
+  assert.equal(result.kind, 'cart-changed')
+  assert.equal(result.reason, 'codes-changed')
+  assert.equal(result.restoration, 'skipped')
+  assert.deepEqual(log, ['remove SAVE20', 'apply AFF15', 'remove AFF15', 'apply SAVE20'])
+  assert.deepEqual(state.codes, ['SAVE20', 'SHOPPER10'])
+})
+
+test('a previously tested code applied by the shopper is not mistaken for a code still owned by the run', async () => {
+  const { adapter, state, log } = scriptedStore({ codes: ['SAVE20'] })
+  const controller = run(adapter, ['AFF15', 'INVALID'], {
+    onUpdate: snapshot => {
+      if (snapshot.phase === 'restoring') state.codes.push('AFF15')
+    },
+  })
+  const { result } = await controller.start()
+
+  assert.equal(result.kind, 'cart-changed')
+  assert.equal(result.reason, 'codes-changed')
+  assert.equal(result.restoration, 'skipped')
+  assert.deepEqual(log, ['remove SAVE20', 'apply AFF15', 'remove AFF15', 'apply INVALID'])
+  assert.deepEqual(state.codes, ['AFF15'])
 })
 
 test('the whole run is bounded in time', async () => {

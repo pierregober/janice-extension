@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Janice settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="page" aria-labelledby="title">
+      <header class="brand">
+        <span id="logo" class="logo-slot"></span>
+        <h1 id="title">Janice settings</h1>
+      </header>
+
+      <section class="panel" aria-labelledby="button-title">
+        <h2 id="button-title" tabindex="-1">Page button</h2>
+        <p class="help">Janice's button on the edge of store pages: tips on product pages, your coupons at checkout. Its gear menu can hide or snooze it.</p>
+        <div class="row">
+          <div>
+            <p class="label">On every store</p>
+            <p id="everywhere" class="value">Showing</p>
+          </div>
+          <button id="wake-everywhere" type="button" class="secondary" hidden>Show it now</button>
+        </div>
+        <div class="group">
+          <p id="stores-label" class="label">Snoozed stores</p>
+          <ul id="snoozed-stores" class="stores" aria-labelledby="stores-label" hidden></ul>
+          <p id="no-stores" class="value">None</p>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="tips-title">
+        <h2 id="tips-title">Tips</h2>
+        <div class="row">
+          <label for="remember" class="label">Remember prices of products I view</label>
+          <input id="remember" type="checkbox" switch checked aria-describedby="remember-help" />
+        </div>
+        <p id="remember-help" class="help">Janice keeps one price a day for each product page you open on a supported store, for up to 90 days, on this device only. They draw the price trend in tips.</p>
+        <div class="row">
+          <p id="prices" class="value">No prices kept</p>
+          <button id="clear-prices" type="button" class="secondary">Clear price history</button>
+        </div>
+      </section>
+
+      <p id="status" class="status" role="status"></p>
+      <p class="foot">These settings stay on this device. Janice never touches payment details or places orders.</p>
+    </main>
+    <script src="../shared/icons.js"></script>
+    <script src="../shared/snooze.js"></script>
+    <script src="../content/tips.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,8 +1,130 @@
 # Sharper Image checkout research and validation
 
-Worksheet initialized October 14, 2026. Inspection and live validation recorded October 23, 2026. Each item is
+Worksheet initialized October 14, 2026. Checkout validation recorded October 23; native cart-drawer testing
+validated October 24, 2026. Each item is
 marked **Observed** (seen on the live site, with evidence), **Inferred** (a reading of what was observed) or
 **Not tested**.
+
+## Product pages, for tips (2026-10-24)
+
+Read-only, from a fresh guest session in Chrome for Testing 153, on
+`/products/smartphone-photo-printer-by-sharper-image`.
+
+- **Observed:** a `script[type="application/ld+json"]` holds a schema.org `Product`, after a JSON-LD array.
+  It has `name`, `sku`, `image`, and `offers[]` with `price` (189.99), `priceCurrency` (USD) and `availability`.
+  `og:price:amount` and `og:price:currency` match. `og:title` adds a marketing suffix, so it is only a
+  fallback.
+- **Observed:** `/products/<handle>.js` answers with the product id, the title, and each variant's price in
+  cents. Tips don't use it: the page's own data needs no request.
+- **Janice's behavior:** tips read the JSON-LD Product (falling back to the og tags) and key prices by the
+  product's handle. They store at most one price per day on this device.
+- **Observed with Janice loaded (later on 2026-10-24, fresh guest profile, same page):** the tips card showed
+  "Smartphone Photo Printer by Sharper Image", $189.99 and 1 coupon, and kept that day's price. The gear menu
+  (Hide on this page, Snooze for 24 hours, Snooze on this site, Go to settings) opened under the gear. Snooze on
+  this site hid the button, also after a reload, until the snooze was cleared. Only Janice's own controls were
+  used; nothing on the store was clicked.
+
+## The checkout on shop.app (shoppers signed in to Shop)
+
+Read-only inspection on 2026-10-24, in the owner's own Chrome signed in to Shop, through Claude in Chrome.
+Nothing was typed or clicked on the checkout, and no personal data was read. Details and the guest-session
+probe are in `SHOPIFY_CHECKOUT_DETECTION.md`.
+
+- **Observed:** for a signed-in Shop shopper, `https://sharperimage.com/checkout` redirects automatically to
+  `https://shop.app/checkout/85659779361/cn/<token>/en-us/shoppay` (`redirect_source=checkout_automatic_redirect`).
+  As a guest, the same shop.app address only redirects to the store's home page.
+- **Observed:** the page names its shop in `meta[name="serialized-shop"]`, the same record as on
+  sharperimage.com: `gid://shopify/Shop/85659779361`, "Sharper Image", `sharperimage.com`,
+  `30786c.myshopify.com`. Other checkout markers are present too: `meta[name="generator"]` = Shopify,
+  `#checkout-main`, and checkout-web scripts.
+- **Observed:** the controls match sharperimage.com's:
+  - `input[name="reductions"]`, labeled "Discount code or gift card", in its own form;
+  - `button[aria-label="Apply Discount Code"]`. The same form also holds a generic `Submit` button, which
+    Janice must never press.
+  - the `MoneyLine-Heading` table (Subtotal, Shipping, Estimated taxes, Total), with `USD` in the Total cell;
+  - `#reduction-tags`.
+- **Not tested:** the store's responses on shop.app (acceptance, rejection message, settling), the narrow
+  layout, and restoration.
+- **Janice's behavior:**
+  - it recognizes the Sharper Image checkout on shop.app by shop ID, and the ID in the address must agree;
+  - it reads the total and shows the coupons;
+  - Try coupons is refused with `unverified-checkout` until a supervised run confirms those responses (see
+    `content/stores.js`).
+
+## Native cart-drawer Apply and serial testing — October 24
+
+**Observed with the full extension, 08:04:14–08:04:32 UTC, Chrome for Testing 153.0.8010.12:** a fresh
+one-item guest cart at `https://sharperimage.com/?cart=true` began at USD $159.99 with no applied codes.
+Clicking Janice's actual small **Use code** control started the shared worker/controller run. A temporary
+test provider supplied `JANICETEST0`, then `AFF15`; the shipped AFF15 provider data was unchanged. The first
+native Apply was rejected with “Promo code JANICETEST0 is not valid or does not meet requirements.” The
+second native Apply accepted AFF15. Independent same-origin `/cart.js` readback confirmed `total_price:
+14499`, currency USD and AFF15 applicable. Janice's shared result and compact feedback showed **You save
+$15.00 with AFF15**, leaving AFF15 applied. A separate native Remove after evidence capture restored
+`15999` with no active codes. No checkout was opened and no contact, delivery, payment or order control was
+operated. No corrective guest setup retry was needed.
+
+(Since this run, at the owner's request, **Use code** enters each code in one step, with one input event and
+one change event; the drawer browser tests cover it, but it has not been re-run live.) The coupon-only trace
+records animated prefixes for both candidates about 85 ms apart, exactly two Apply
+clicks, no overlap and zero checkout clicks. The button changed **Use code → Stop → Try again**; no large
+panel opened. [Sanitized report/screenshots](evidence/drawer-apply-2026-10-24/) retain the live placement;
+compact-feedback spacing was subsequently refined and passed seven focused browser checks.
+[Final spacing screenshot — Demo fixture only](evidence/drawer-apply-2026-10-24/demo-final-spacing.png) is
+separate from the live redemption evidence.
+
+| Drawer fact | Evidence / implementation boundary |
+| --- | --- |
+| Origin, visible surface and safe controls | **Observed:** exact origin `https://sharperimage.com`, root `#shopify-section-cart-drawer`, component `discount-code-component`, text input `input[name="discount_code"]`, dedicated Apply `button[type="button"][data-qa="promo-apply"]`. Applied-code removal is `button[type="button"][data-discount-code][data-qa^="promo-remove-"]`. Generic “Remove” text is unsafe because product removal uses that text too. Hidden/inert/`aria-hidden` ancestors and disabled controls are refused. Other origins, including unverified `shop.app`, are not enabled by a field match. |
+| Accepted and rejected responses | **Observed:** both responses clear the field. Accepted AFF15 has its exact code/remove button and an Order discount row of −$15.00. Rejection is `.cart-discount-code__message__item--is-error p`, naming the requested code. `/cart.js` retains an invalid code with `applicable:false`; only `applicable:true` entries are applied codes. A previous error can remain visible while the next request starts, so it is insufficient alone. |
+| Completed update | **Observed from the store's exact public `cart-drawer.js` source, then exercised by the extension run:** Apply sets `data-is-updating="true"`; section rendering replaces the component/input via `.js-cart--draw.innerHTML`. The busy flag can clear before that asynchronous render finishes. The adapter therefore requires an actual new component node, a matching requested outcome, stable UI for 600 ms and consistent fresh cart data. A reused generated input id or busy-clear alone is not completion. Waits are bounded at 20 s; missing freshness/outcomes remain unverified. |
+| Authoritative amount and codes | **Observed:** `/cart.js` confirms USD `total_price` 15999 → 14499 → 15999, matching native AFF15 Apply/Remove. A reliable visible amount/currency DOM pair was not independently established for this drawer, so advertised product “with code” prices and `item.final_line_price` are not used as the comparable amount. Results are labeled **cart total**, before shipping/taxes. DOM code tags and server applicable codes must agree in both directions before mutation or a result. |
+| Minimum data read | **Implemented:** exact same-origin read-only `GET /cart.js`, with bounded fetch and no-store caching. Whitelist: `currency`, `total_price`, optional `items_subtotal_price`, `discount_codes` (`code`, `applicable`) and item `variant_id`, `quantity`, `original_line_price`. Cart tokens, notes, customer attributes, contact/payment data and unrelated response fields are discarded. DOM polls do not issue API requests; a settled state uses one cart read, with an additional fresh read after animated typing and before Apply. |
+| Stable cart identity and shopper edits | **Observed:** applying AFF15 changes product `data-key`/line keys. Identity therefore uses sorted variant id + quantity + original line price, excluding discount-derived keys/prices. **Implemented and fixture tested:** compare fresh identity and applied codes after typing, before clicking Apply; changes stop the run and invalidate the old comparison. A pending UI, replaced field, different draft or DOM/server code mismatch prevents Apply. |
+| Original discount and field draft | **Implemented and fixture/browser tested:** capture baseline codes, cart total/currency/identity and original draft before testing. Remove/reapply only exact native coupon controls through the existing serial controller, verify the final winner or original state, and report restoration failures. Restore the original field draft only when the field is still empty or contains Janice's own value; preserve newer shopper text. Stop during typing sends no Apply, and Stop after submission first settles that update. |
+| Remaining live limits | The live drawer run establishes invalid/accepted native Apply, animated entry, final savings and native Remove. Drawer Stop, repeated starts, popup closure, original-discount restoration, a second improving candidate, cart/draft edits and timeouts are fixture/browser checks. Branded Chrome, screen readers, shipping/tax after an address, other stores and stacking remain unverified. |
+
+Native-control research and exact public-source reference are preserved in
+[native-research.json](evidence/drawer-apply-2026-10-24/native-research.json). The bundled adapter is
+[`sharper-image-drawer.js`](../extension/content/adapters/sharper-image-drawer.js); executable merchant code is
+not downloaded or run by Janice. The source research was read-only.
+
+## Earlier promo discovery and field-helper records
+
+- **Historical fill-only helper, observed 2026-10-24 06:44 UTC, Chrome for Testing 153:** a fresh one-item guest cart at
+  `/?cart=true` rendered the actual drawer input. Janice outlined it with the static usejanice.com hero
+  rainbow and showed an 89×28px **Use code** control. No old reminder/card opened, and decoration took no
+  focus. Clicking the helper filled AFF15 with one input and one change event. Store Apply and Checkout
+  counters both stayed zero. This record confirms field decoration/fill at that revision only; the native
+  Apply run above supersedes its earlier redemption limitation.
+  [Evidence and later keyboard-check limitation](evidence/inline-coupon-2026-10-24/). The final tab-order/status
+  adjustments are browser-fixture checked; a later live keyboard setup returned an empty cart and never
+  reached a promo field.
+
+- **Observed 2026-10-24 06:20 UTC, Chrome for Testing 153:** the real `#shopify-section-cart-drawer` sits inside
+  `modal-dialog#modal-cart[role="dialog"]`. Closing the drawer sets `aria-hidden="true"` and `display:none` on
+  that ancestor; opening removes the attribute and uses `display:flex`. Drawer classes stay unchanged. The
+  input is `input[name="discount_code"]`, with generated id and label “Enter code here”, inside
+  `discount-code-component > .cart-discount-code`. Its Apply button is
+  `button[type="button"][data-qa="promo-apply"]`. The fresh empty cart had no promo field; a one-item guest
+  cart did. No coupon was entered, Apply was not pressed, and checkout was not opened for this inspection.
+- **Historical reminder, superseded:** the earlier floating reminder was tested in browser fixtures. An extension-loaded live attempt at
+  06:26 UTC opened Cart after dismissing a delayed signup dialog, but the drawer did not populate its discount
+  field within 30 seconds after guest-cart API setup and storefront reload. Detection never reached a visible
+  live promo field in that attempt, so it does not establish reminder compatibility or a Janice failure.
+  Follow the manual steps in `TEST_REPORT.md` using a cart populated through the store UI.
+  [Sanitized inspection and validation evidence](evidence/cart-drawer-2026-10-24/).
+
+- **Implemented, fixture/browser checked:** read-only field discovery uses labels, names, placeholders and ARIA
+  metadata rather than requiring a checkout URL to recognize a likely promo field. Dynamically added controls
+  and collapsed summaries are covered. This does not broaden the adapter's execution support.
+- **Discovery versus support:** a generic Shopify drawer promo field remains only a discovery candidate.
+  Automatic execution is limited to the separately verified Sharper Image drawer and checkout adapters.
+- **Implemented:** optional shopper codes are combined with the provider list (20 unique codes maximum), tried
+  serially only after **Try coupons** or the verified drawer's **Use code**, and reported beside the drawer
+  field or in the checkout's non-modal overlay. The supplied AFF15 dataset remains
+  unchanged. New validation evidence is recorded in `TEST_REPORT.md`; earlier live records below describe their
+  original revisions.
 
 ## Planning facts
 
@@ -13,7 +135,7 @@ marked **Observed** (seen on the live site, with evidence), **Inferred** (a read
 - Final-action default: leave the lowest verified improving coupon applied, preserving the original on ties/worse outcomes. This is editable and was not explicitly confirmed by the user.
 - `data/mock-coupons.json` was left exactly as supplied (including `checkoutIntegrationStatus` and `liveValidation`): it is provider data, and checkout outcomes are recorded here and in [TEST_REPORT.md](TEST_REPORT.md), not in the dataset.
 
-## How the inspection was done
+## How the October 23 checkout inspection was done
 
 - **Observer:** Claude Code, automated with Playwright 1.63.0, on the owner's Mac; no person watched the runs.
 - **Browsers:** inspection in the installed Google Chrome 155.0.8059.86 with a fresh temporary profile (no
@@ -23,13 +145,13 @@ marked **Observed** (seen on the live site, with evidence), **Inferred** (a read
   delivery or payment field was ever filled; Pay now was never pressed; no order was placed.
 - Network observations record request names and status codes only, never request bodies or tokens.
 
-## Inspection record
+## October 23 checkout inspection record
 
 | Item | Observed evidence / status |
 | --- | --- |
 | Inspection date and observer | **Observed** 2026-10-23, 07:58–09:00 UTC, Claude Code (automated). |
 | Chrome version and extension build/revision | Inspection: Google Chrome 155.0.8059.86. Validation: Chrome for Testing 153.0.8010.12 with Janice Coupons 0.1.0 (uncommitted working tree; the repository had no commits). |
-| Path from storefront to cart/checkout | **Observed** `/cart` redirects to `/?cart=true`, a cart drawer whose button `button[name="checkout"]` (“Checkout–$319.98”) leads to checkout. `/checkout` also redirects to the current cart's checkout. A Klaviyo sign-up dialog (`role="dialog"`, `aria-label="POPUP Form"`) can cover the drawer until closed. The drawer has its own discount field (`input[name="discount_code"]`); Janice does not use it in this version. |
+| Path from storefront to cart/checkout | **Observed** `/cart` redirects to `/?cart=true`, a cart drawer whose button `button[name="checkout"]` (“Checkout–$319.98”) leads to checkout. `/checkout` also redirects to the current cart's checkout. A Klaviyo sign-up dialog (`role="dialog"`, `aria-label="POPUP Form"`) can cover the drawer until closed. The drawer has its own discount field (`input[name="discount_code"]`); the October 23 checkout revision did not use it. Native drawer testing was added and validated October 24 as recorded above. |
 | Actual checkout URL and redirected origin(s) | **Observed** `https://sharperimage.com/checkouts/cn/<token>/en-us?_r=…`, title “Checkout - Sharper Image”: Shopify's one-page checkout, same origin as the storefront. The shop is `30786c.myshopify.com`. |
 | U.S. region selection and displayed currency | **Observed** shop currency USD, country US (`/meta.json`); checkout `lang="en-US"`, Country/Region defaults to United States, the Total cell shows the code `USD`, amounts are written `$1,234.56`. |
 | Coupon input, apply/remove controls | **Observed** `input[name="reductions"]` (label and placeholder “Discount code or gift card”) in its own `<form>`, with `button[type=submit][aria-label="Apply Discount Code"]` (text “Apply”, disabled while the field is empty) and a hidden `aria-hidden` Submit button. Applied codes: `#reduction-tags` → `ul[role=list][aria-label="Discount code or gift card"]`, one item per code with `button[aria-label="Remove <CODE>"]`. Element ids such as `ReductionsInputPS2t_…-51` are generated and are not used. |

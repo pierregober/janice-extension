@@ -1,0 +1,110 @@
+{
+  "startedAt": "2026-10-24T07:45:56.039Z",
+  "finishedAt": "2026-10-24T07:46:09.176Z",
+  "browser": "153.0.8010.12",
+  "noCheckoutOrPayment": true,
+  "stages": [
+    {
+      "name": "baseline",
+      "observedAt": "2026-10-24T07:46:01.160Z",
+      "fieldEmpty": true,
+      "appliedAttribute": "",
+      "currency": "USD",
+      "totalMinor": 15999,
+      "codes": [],
+      "items": [
+        {
+          "variantId": 53427141411105,
+          "quantity": 1
+        }
+      ],
+      "error": []
+    },
+    {
+      "name": "JANICETEST0-settled",
+      "observedAt": "2026-10-24T07:46:04.025Z",
+      "fieldEmpty": true,
+      "appliedAttribute": "",
+      "currency": "USD",
+      "totalMinor": 15999,
+      "codes": [
+        {
+          "code": "JANICETEST0",
+          "applicable": false
+        }
+      ],
+      "items": [
+        {
+          "variantId": 53427141411105,
+          "quantity": 1
+        }
+      ],
+      "error": [
+        "Promo code JANICETEST0 is not valid or does not meet requirements."
+      ]
+    },
+    {
+      "name": "AFF15-settled",
+      "observedAt": "2026-10-24T07:46:06.893Z",
+      "fieldEmpty": true,
+      "appliedAttribute": "AFF15",
+      "currency": "USD",
+      "totalMinor": 14499,
+      "codes": [
+        {
+          "code": "AFF15",
+          "applicable": true
+        }
+      ],
+      "items": [
+        {
+          "variantId": 53427141411105,
+          "quantity": 1
+        }
+      ],
+      "error": []
+    },
+    {
+      "name": "restored",
+      "observedAt": "2026-10-24T07:46:09.070Z",
+      "fieldEmpty": true,
+      "appliedAttribute": "",
+      "currency": "USD",
+      "totalMinor": 15999,
+      "codes": [],
+      "items": [
+        {
+          "variantId": 53427141411105,
+          "quantity": 1
+        }
+      ],
+      "error": []
+    }
+  ],
+  "nativeSelectors": {
+    "root": "#shopify-section-cart-drawer",
+    "input": "input[name=discount_code]",
+    "apply": "discount-code-component button[data-qa=promo-apply]",
+    "remove": "discount-code-component button[data-discount-code][data-qa^=promo-remove-]",
+    "error": "discount-code-component .cart-discount-code__message__item--is-error p"
+  },
+  "limits": [
+    "Visible amount/currency DOM not independently established; cart.js confirmed actual USD total",
+    "Product data-key changes when discount applies",
+    "Follow-up detail setup failed to populate a fresh drawer; original successful evidence is retained",
+    "Busy lifecycle inferred from exact public store implementation, not mutation trace captured live"
+  ],
+  "sourceInspection": {
+    "url": "https://sharperimage.com/cdn/shop/t/186/assets/cart-drawer.js?v=111303379908363901431792406760",
+    "observedBusyAttribute": ".js-cart-drawer[data-is-updating=true]",
+    "freshnessSignal": "fetchCartDrawer replaces .js-cart--draw.innerHTML, including discount-code-component and input",
+    "caveat": "Apply finally removes busy before nested fetchCartDrawer necessarily finishes; require replacement and outcome consistency, not busy-clear alone",
+    "requestSequence": [
+      "CartService.update discount",
+      "CartService.update coupon metadata attributes",
+      "fetchCartDrawer sections + cart",
+      "replace cart drawer content"
+    ],
+    "execution": "Public source read for research only; not executed by extension"
+  }
+}

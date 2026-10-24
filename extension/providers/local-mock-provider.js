@@ -40,7 +40,7 @@
     let pending = null
 
     async function dataset() {
-      pending ??= Promise.resolve().then(loadDataset).then(validate)
+      pending ??= (async () => validate(await loadDataset()))()
       try {
         return await pending
       } catch (error) {

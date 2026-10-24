@@ -2,7 +2,8 @@
  * Toolbar popup: the store, its coupons, and Try coupons. Until that click
  * it only reads the page. The run continues in the page after the popup
  * closes; reopening the popup shows its progress or result from
- * chrome.storage.session.
+ * chrome.storage.session. Its gear opens Janice's settings, and when the page
+ * button is snoozed on this store it says so, with Show it again.
  */
 ;(async function () {
   'use strict'
@@ -21,11 +22,16 @@
   let isStarting = false
   let stopSent = false
   let note = ''
+  let codesError = ''
+  let draftEdited = false
+  let draftRestored = false
+  // The page button's snooze (shared/snooze.js), as kept in chrome.storage.local.
+  let snooze = null
   const cards = new Map()
 
   const element = (tag, className, text) => Object.assign(document.createElement(tag), { className, textContent: text ?? '' })
   const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0].toUpperCase()).join('')
-  const checkoutLine = (total, codes) => `Checkout · total ${amount(total)}${codes?.length ? ` with ${codeList(codes)}` : ''}`
+  const checkoutLine = (total, codes) => `${total?.basis === 'cart-total' ? 'Cart' : 'Checkout'} · total ${amount(total)}${codes?.length ? ` with ${codeList(codes)}` : ''}`
   // A final state Janice read back and confirmed: the kept winner, or the original put back or never changed.
   const isChecked = result => result?.kind === 'better' || result?.restoration === 'verified' || result?.restoration === 'not-needed'
 
@@ -38,7 +44,21 @@
   function screen() {
     const detection = inspection?.detection
     const store = detection?.store ?? null
-    const candidates = inspection?.candidates ?? []
+    let candidates = [...(inspection?.candidates ?? [])]
+    codesError = ''
+    try {
+      candidates = Janice.couponCandidates.mergeCandidates(candidates, byId('additional-codes').value)
+    } catch (error) {
+      codesError = error.message
+    }
+    // Active runs may reach a new code after this popup opened. Completed
+    // runs use the editable draft, so the visible codes match the next run.
+    const known = new Set(candidates.map(candidate => candidate.code.toUpperCase()))
+    for (const code of (ACTIVE.has(run?.status) ? [...(run?.attempts ?? []).map(attempt => attempt.code), run?.progress?.code] : []).filter(Boolean)) {
+      if (known.has(code.toUpperCase())) continue
+      known.add(code.toUpperCase())
+      candidates.push({ code, source: { kind: 'shopper-entered' } })
+    }
     const view = { store, isDemo: Boolean(store?.isDemo || run?.store?.isDemo), candidates: [] }
 
     if (tabId === undefined) return { ...view, status: 'No tab to check.' }
@@ -49,7 +69,8 @@
     if (!store) {
       return { ...view, icon: 'bag', status: 'This page is not a supported store.', sub: 'Janice Coupons works on the Sharper Image checkout for now.', shop: true }
     }
-    if (store.page !== 'checkout') {
+    if (store.page !== 'checkout' && !detection.supported) {
+      if (detection.discovery?.kind === 'promo-field') return { ...view, meta: 'Promo code field detected', icon: 'info', status: 'Promo code field detected', sub: "Automatic testing isn't verified here. Go to checkout to try coupons.", candidates, count: true }
       return { ...view, meta: 'Store page', icon: 'arrow', status: 'Go to checkout to try coupons.', sub: 'Janice tests codes on the checkout page, one at a time.', candidates, count: true }
     }
 
@@ -67,7 +88,7 @@
     }
 
     const preview = detection.preview
-    const meta = preview ? checkoutLine(preview.total, preview.codes) : 'Checkout'
+    const meta = preview ? checkoutLine(preview.total, preview.codes) : detection.surface === 'cart-drawer' ? 'Cart' : 'Checkout'
     const canStart = detection.supported && candidates.length > 0 && !inspection.providerError
 
     if (run?.result) {
@@ -89,7 +110,7 @@
     if (inspection.providerError) {
       return { ...view, meta, tone: 'warning', icon: 'warning', status: `Couldn't load coupons (${inspection.providerError}). Nothing was changed; reopen the popup to retry.` }
     }
-    if (!detection.supported) return { ...view, meta, tone: 'warning', icon: 'warning', status: `${reasonText(detection.reason)} Nothing was changed.`, candidates }
+    if (!detection.supported) return { ...view, meta, tone: 'warning', icon: 'warning', status: detection.reason !== 'unverified-checkout' && detection.discovery?.kind === 'promo-field' ? "Promo code field detected. Automatic testing isn't verified here. Nothing was changed." : `${reasonText(detection.reason)} Nothing was changed.`, candidates }
     if (candidates.length === 0) return { ...view, meta, icon: 'info', status: 'No coupon candidates for this store yet. Nothing was changed.' }
 
     const one = candidates.length === 1
@@ -103,7 +124,7 @@
       candidates,
       count: true,
       start: 'first',
-      hint: 'Nothing changes until you click Try coupons.',
+      hint: `${detection.discovery?.kind === 'promo-field' ? 'Promo code field detected. ' : ''}Nothing changes until you click Try coupons.`,
     }
   }
 
@@ -147,7 +168,7 @@
       const card = cards.get(candidate.code)
       const { state, label } = couponState(candidate.code)
       card.className = `coupon is-${state}`
-      card.querySelector('.coupon-state').textContent = label
+      card.querySelector('.coupon-state').textContent = !run && candidate.source?.kind === 'shopper-entered' ? 'Your code · not tried yet' : label
       return card
     })
     // Replace the list only when its cards change, so focus on a Copy button survives updates.
@@ -180,21 +201,20 @@
     }
   }
 
+  // A native <progress>: without a value it is indeterminate.
   function paintProgress(progress) {
     const bar = byId('progress')
     bar.hidden = !progress
     if (!progress) return
-    const isKnown = Number.isInteger(progress.index) && progress.count > 0
-    bar.classList.toggle('is-indeterminate', !isKnown)
-    if (!isKnown) {
-      for (const name of ['aria-valuemin', 'aria-valuemax', 'aria-valuenow', 'aria-valuetext']) bar.removeAttribute(name)
+    if (!(Number.isInteger(progress.index) && progress.count > 0)) {
+      bar.removeAttribute('value')
+      bar.removeAttribute('aria-valuetext')
       return
     }
-    bar.setAttribute('aria-valuemin', '0')
-    bar.setAttribute('aria-valuemax', String(progress.count))
-    bar.setAttribute('aria-valuenow', String(progress.index - 1))
+    // Halfway through the code being tried, so the bar never reads as done mid-run.
+    bar.max = progress.count
+    bar.value = progress.index - 0.5
     bar.setAttribute('aria-valuetext', `Trying code ${progress.index} of ${progress.count}`)
-    bar.style.setProperty('--value', `${((progress.index - 0.5) / progress.count) * 100}%`)
   }
 
   function render() {
@@ -224,7 +244,7 @@
 
     const tryButton = byId('try')
     tryButton.hidden = !view.start
-    tryButton.disabled = isStarting
+    tryButton.disabled = isStarting || Boolean(codesError)
     tryButton.className = view.start === 'again' ? 'secondary' : 'primary'
     tryButton.textContent = isStarting ? 'Starting…' : view.start === 'again' ? 'Try coupons again' : 'Try coupons'
 
@@ -236,6 +256,19 @@
     byId('shop').hidden = !view.shop
     show('hint', Boolean(view.hint), view.hint)
     show('note', Boolean(note), note)
+    byId('manual-codes').hidden = !(inspection?.detection?.supported && !inspection?.providerError && !ACTIVE.has(run?.status))
+    byId('additional-codes').disabled = isStarting
+    byId('additional-codes').setAttribute('aria-invalid', String(Boolean(codesError)))
+    show('codes-error', Boolean(codesError), codesError)
+
+    const snoozedBy = view.store && snooze ? Janice.snooze.hiddenBy(snooze, view.store.id) : null
+    byId('snoozed').hidden = !snoozedBy
+    byId('snoozed-text').textContent =
+      snoozedBy === 'store'
+        ? `The page button is snoozed on ${view.store.name}.`
+        : snoozedBy
+        ? `The page button is snoozed until ${new Date(snooze.until).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.`
+        : ''
   }
 
   async function refresh() {
@@ -245,17 +278,47 @@
       inspection = { ok: false, reason: 'error', detail: String(error?.message ?? error) }
     }
     run = inspection?.run ?? null
+    restoreRunDraft()
     render()
+  }
+
+  function restoreRunDraft() {
+    if (draftRestored) return
+    draftRestored = true
+    const input = byId('additional-codes')
+    if (draftEdited || input.value || !inspection?.ok || !run) return
+    const known = new Set((inspection.candidates ?? []).map(candidate => candidate.code.toUpperCase()))
+    const extra = []
+    for (const code of [...(run.attempts ?? []).map(attempt => attempt.code), run.progress?.code].filter(Boolean)) {
+      if (typeof code !== 'string' || known.has(code.toUpperCase())) continue
+      known.add(code.toUpperCase())
+      extra.push(code)
+    }
+    try {
+      // Restore only known coupon codes, never raw textarea content or offer data.
+      Janice.couponCandidates.mergeCandidates(inspection.candidates ?? [], extra.join('\n'))
+      input.value = extra.join('\n')
+    } catch {
+      // An incompatible old run must not put invalid candidates into a new draft.
+    }
   }
 
   byId('try').addEventListener('click', async () => {
     if (isStarting) return
+    try {
+      Janice.couponCandidates.mergeCandidates(inspection?.candidates ?? [], byId('additional-codes').value)
+    } catch (error) {
+      codesError = error.message
+      render()
+      return
+    }
     isStarting = true
     note = ''
     render()
     let reply
     try {
-      reply = await chrome.runtime.sendMessage({ type: 'janice:try', tabId })
+      const additionalCodes = byId('additional-codes').value
+      reply = await chrome.runtime.sendMessage({ type: 'janice:try', tabId, ...(additionalCodes.trim() ? { additionalCodes } : {}) })
     } catch (error) {
       reply = { ok: false, reason: 'error', detail: String(error?.message ?? error) }
     }
@@ -265,20 +328,64 @@
     render()
   })
 
-  byId('stop').addEventListener('click', () => {
+  byId('additional-codes').addEventListener('input', () => {
+    draftEdited = true
+    note = ''
+    render()
+  })
+
+  byId('stop').addEventListener('click', async () => {
     stopSent = true
     byId('stop').disabled = true
-    chrome.runtime.sendMessage({ type: 'janice:stop', tabId }).catch(() => {})
+    try {
+      await chrome.runtime.sendMessage({ type: 'janice:stop', tabId })
+    } catch {
+      // The run's own updates show whether it stopped.
+    }
+  })
+
+  byId('settings').addEventListener('click', async () => {
+    try {
+      await chrome.runtime.openOptionsPage()
+    } catch {
+      byId('announce').textContent = "Couldn't open settings."
+    }
+  })
+
+  byId('wake').addEventListener('click', async () => {
+    try {
+      await Janice.snooze.wake(chrome.storage.local, { everywhere: true, storeId: inspection?.detection?.store?.id })
+      byId('announce').textContent = 'The page button is back.'
+    } catch {
+      byId('announce').textContent = "Couldn't turn the page button back on."
+    }
   })
 
   chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[Janice.snooze.KEY]) {
+      snooze = Janice.snooze.normalize(changes[Janice.snooze.KEY].newValue)
+      return render()
+    }
     const change = area === 'session' && changes[`run:${tabId}`]
     if (!change) return
     run = change.newValue ?? null
+    // A popup reopened mid-run learns later candidates as they are tried.
+    // Keep its automatic retry draft current without overwriting shopper edits.
+    if (!draftEdited) {
+      draftRestored = false
+      byId('additional-codes').value = ''
+      restoreRunDraft()
+    }
     render()
   })
 
   byId('logo').innerHTML = LOGO
+  byId('settings').innerHTML = icon('gear')
   render()
+  try {
+    snooze = await Janice.snooze.read(chrome.storage.local)
+  } catch {
+    // Without storage the popup works as before; it just can't say the button is snoozed.
+  }
   await refresh()
 })()

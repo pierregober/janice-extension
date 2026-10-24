@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Janice Coupons</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
@@ -12,6 +13,7 @@
         <span id="logo" class="logo-slot"></span>
         <h1 id="title">Janice Coupons</h1>
         <span id="demo" class="demo" hidden title="Simulated checkout: results do not reflect a real store">Demo</span>
+        <button id="settings" type="button" class="settings" aria-label="Settings"></button>
       </header>
 
       <div class="content">
@@ -29,10 +31,17 @@
           <p id="kicker" class="kicker" hidden></p>
           <p id="status" class="status" role="status" aria-live="polite">Checking this page…</p>
           <p id="sub" class="sub" hidden></p>
-          <div id="progress" class="progress" role="progressbar" aria-label="Testing progress" hidden><span></span></div>
+          <progress id="progress" class="progress" aria-label="Testing progress" hidden></progress>
         </section>
 
         <ul id="coupons" class="coupons" aria-label="Coupons" hidden></ul>
+        <details id="manual-codes" class="manual-codes" hidden>
+          <summary>Add your own codes</summary>
+          <label for="additional-codes">Promo codes to try</label>
+          <textarea id="additional-codes" rows="3" maxlength="2000" spellcheck="false" autocapitalize="off" aria-describedby="codes-help codes-error" placeholder="WELCOME10, SAVE20"></textarea>
+          <p id="codes-help" class="codes-help">Separate codes with commas or new lines. Up to 20 codes per run.</p>
+          <p id="codes-error" class="note" role="status" hidden></p>
+        </details>
         <ul id="details" class="details" hidden></ul>
 
         <div class="actions">
@@ -42,6 +51,7 @@
         </div>
         <p id="hint" class="hint" hidden></p>
         <p id="note" class="note" hidden></p>
+        <p id="snoozed" class="snoozed" hidden><span id="snoozed-text"></span> <button id="wake" type="button" class="link">Show it again</button></p>
         <p id="announce" class="visually-hidden" aria-live="polite"></p>
       </div>
 
@@ -55,6 +65,8 @@
     <script src="../shared/money.js"></script>
     <script src="../shared/messages.js"></script>
     <script src="../shared/icons.js"></script>
+    <script src="../shared/coupon-candidates.js"></script>
+    <script src="../shared/snooze.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

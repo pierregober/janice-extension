@@ -1,0 +1,14 @@
+{
+  "startedAt": "2026-10-24T06:49:50.229Z",
+  "scenario": "Live inline promo-field helper",
+  "noApplyOrCheckout": true,
+  "browser": "153.0.8010.12",
+  "guestSetup": {
+    "addStatus": 200,
+    "itemCount": 0,
+    "currency": "USD"
+  },
+  "correctiveRetry": "Navigate /cart in the same guest session",
+  "error": "locator.waitFor: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#shopify-section-cart-drawer input[name=\"discount_code\"]')\u001b[22m\n\n    at /private/tmp/janice-inline-live.js:69:86",
+  "finishedAt": "2026-10-24T06:50:33.384Z"
+}

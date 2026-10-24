@@ -76,17 +76,30 @@ test('content: Stop from the popup reaches the run', async () => {
   assert.deepEqual(checkout.demo.state.codes, [])
 })
 
-function openPopup(responses) {
+// `stored` gives the popup chrome.storage.local, in memory.
+function openPopup(responses, { stored = null } = {}) {
   const source = read('extension/popup/popup.html')
   // The popup's own script list, so these tests load exactly what the popup does.
   const scripts = [...source.matchAll(/<script src="([^"]+)"><\/script>/g)].map(([, src]) => path.posix.join('popup', src))
   const dom = new JSDOM(source.replace(/<script src="[^"]+"><\/script>/g, ''), { url: 'http://localhost/popup/popup.html?tab=7', runScripts: 'outside-only' })
   const sent = []
   let onStorage = null
+  let settingsOpened = 0
+  const local = stored && {
+    get: async keys => Object.fromEntries([keys].flat().filter(key => key in stored).map(key => [key, structuredClone(stored[key])])),
+    async set(items) {
+      const changes = {}
+      for (const [key, value] of Object.entries(items)) {
+        changes[key] = { oldValue: stored[key], newValue: structuredClone(value) }
+        stored[key] = structuredClone(value)
+      }
+      onStorage?.(changes, 'local')
+    },
+  }
   dom.window.chrome = {
-    runtime: { sendMessage: async message => (sent.push(plain(message)), responses[message.type]?.(message)) },
+    runtime: { sendMessage: async message => (sent.push(plain(message)), responses[message.type]?.(message)), openOptionsPage: async () => { settingsOpened++ } },
     tabs: { query: async () => [{ id: 7 }] },
-    storage: { onChanged: { addListener: fn => (onStorage = fn) } },
+    storage: { ...(local && { local }), onChanged: { addListener: fn => (onStorage = fn) } },
   }
   loadScripts(dom.window, scripts)
   const { document } = dom.window
@@ -103,7 +116,7 @@ function openPopup(responses) {
     await waitUntil(() => sent.length === count)
     await new Promise(resolve => setTimeout(resolve, 5))
   }
-  return { dom, document, sent, text, shown, cards, settle, pushRun: run => onStorage({ 'run:7': { newValue: run } }, 'session') }
+  return { dom, document, sent, text, shown, cards, settle, stored, settingsOpened: () => settingsOpened, pushRun: run => onStorage({ 'run:7': { newValue: run } }, 'session') }
 }
 
 const CHECKOUT = { id: 'sharper-image-us', name: 'Sharper Image', currency: 'USD', isDemo: false, page: 'checkout' }
@@ -143,7 +156,7 @@ test('popup: shows the store, the coupon and Try coupons, and changes nothing be
   assert.equal(popup.text('try'), 'Try coupons')
   assert.equal(popup.shown('try'), true)
   assert.equal(popup.shown('demo'), false)
-  assert.equal(popup.document.querySelector('#logo svg') !== null, true, 'the Janice mark is drawn')
+  assert.equal(popup.document.querySelector('#logo img') !== null, true, 'the Janice favicon is shown')
   assert.deepEqual(popup.sent.map(message => message.type), ['janice:inspect'])
 
   popup.document.getElementById('try').click()
@@ -151,7 +164,10 @@ test('popup: shows the store, the coupon and Try coupons, and changes nothing be
   assert.deepEqual(popup.sent[1], { type: 'janice:try', tabId: 7 })
   assert.equal(popup.text('kicker'), 'Testing coupons')
   assert.equal(popup.text('status'), 'Trying AFF15 (1 of 1)…')
-  assert.equal(popup.document.getElementById('progress').getAttribute('aria-valuetext'), 'Trying code 1 of 1')
+  const bar = popup.document.getElementById('progress')
+  assert.equal(bar.tagName, 'PROGRESS', 'a native progress bar')
+  assert.equal(bar.getAttribute('aria-valuetext'), 'Trying code 1 of 1')
+  assert.equal(bar.position, 0.5, 'halfway through the one code')
   assert.equal(popup.cards()[0].state, 'Trying in your checkout…')
   assert.match(popup.text('details'), /Before testing: no code · total \$319\.98/)
   assert.equal(popup.shown('stop'), true)
@@ -210,7 +226,7 @@ test('popup: reopening during a run shows its progress and Stop; a Demo run says
   assert.equal(popup.shown('demo'), true)
   assert.equal(popup.text('kicker'), 'Getting ready')
   assert.equal(popup.text('status'), 'Reading your checkout…')
-  assert.equal(popup.document.getElementById('progress').classList.contains('is-indeterminate'), true)
+  assert.equal(popup.document.getElementById('progress').hasAttribute('value'), false, 'no value: indeterminate')
   assert.match(popup.text('details'), /Before testing: no code · total \$319\.98/)
   assert.equal(popup.cards()[0].state, 'Up next')
   assert.equal(popup.shown('stop'), true)
@@ -253,4 +269,48 @@ test('popup: Copy puts the code on the clipboard and says so', async () => {
   assert.deepEqual(copied, ['AFF15'])
   assert.equal(popup.text('announce'), 'Copied AFF15.')
   assert.deepEqual(popup.sent.map(message => message.type), ['janice:inspect'], 'copying changes nothing in the checkout')
+})
+
+test('popup reopened mid-batch learns later attempts for its retry draft', async () => {
+  const active = { runId: 'batch', store: CHECKOUT, status: 'running', phase: 'testing', progress: { code: 'AFF15', index: 1, count: 3 }, attempts: [] }
+  const popup = openPopup({ 'janice:inspect': () => ready(active) })
+  await popup.settle(1)
+  assert.equal(popup.document.getElementById('additional-codes').value, '')
+  popup.pushRun(finished(['AFF15', 'SAVE20', 'NOPE'].map(code => ({ code, outcome: 'rejected' })), { kind: 'rejected', restoration: 'not-needed', codes: [] }))
+  assert.equal(popup.document.getElementById('additional-codes').value, 'SAVE20\nNOPE')
+  assert.deepEqual(popup.cards().map(card => card.code), ['AFF15', 'SAVE20', 'NOPE'])
+})
+
+test('popup: says when the page button is snoozed on this store, Show it again brings it back, and the gear opens settings', async () => {
+  const snoozed = { until: null, stores: [{ id: 'sharper-image-us', name: 'Sharper Image' }] }
+  const popup = openPopup({ 'janice:inspect': () => ready(null) }, { stored: { 'launcher:snooze': snoozed } })
+  await popup.settle(1)
+  await waitUntil(() => popup.shown('snoozed'))
+  assert.equal(popup.text('snoozed-text'), 'The page button is snoozed on Sharper Image.')
+  assert.equal(popup.text('status'), 'Ready to try 1 coupon', 'the popup works as usual')
+
+  popup.document.getElementById('wake').click()
+  await waitUntil(() => !popup.shown('snoozed'))
+  assert.deepEqual(popup.stored['launcher:snooze'], { until: null, stores: [] })
+  assert.equal(popup.text('announce'), 'The page button is back.')
+
+  // Snoozed on every store, from another tab while the popup is open.
+  const until = Date.now() + 60 * 60 * 1000
+  await popup.dom.window.Janice.snooze.snoozeEverywhere(popup.dom.window.chrome.storage.local, until - 24 * 60 * 60 * 1000)
+  await waitUntil(() => popup.shown('snoozed'))
+  assert.match(popup.text('snoozed-text'), /^The page button is snoozed until \w{3} \d{1,2}:\d{2} (AM|PM)\.$/)
+
+  popup.document.getElementById('settings').click()
+  await waitUntil(() => popup.settingsOpened() === 1)
+  assert.equal(popup.document.getElementById('settings').getAttribute('aria-label'), 'Settings')
+  assert.deepEqual(popup.sent.map(message => message.type), ['janice:inspect'], 'none of this asks the page anything')
+})
+
+test('popup: no snooze notice when the page button shows, or away from a store', async () => {
+  const popup = openPopup({ 'janice:inspect': () => ready(null) }, { stored: {} })
+  await popup.settle(1)
+  assert.equal(popup.shown('snoozed'), false)
+  const elsewhere = openPopup({ 'janice:inspect': () => ({ ok: true, detection: { store: null }, candidates: [], providerError: null, run: null }) }, { stored: { 'launcher:snooze': { until: Date.now() + 1000, stores: [] } } })
+  await elsewhere.settle(1)
+  assert.equal(elsewhere.shown('snoozed'), false)
 })
