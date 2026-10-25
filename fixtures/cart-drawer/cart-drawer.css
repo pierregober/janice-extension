@@ -2,7 +2,7 @@
 body { margin: 0; color: #25212c; background: #f7f5fa; font: 16px/1.5 system-ui, sans-serif; }
 main { max-width: 720px; padding: 32px; }
 h1 { line-height: 1.15; }
-.demo { color: #5b2c91; font-weight: 700; }
+.demo { color: #1c252c; font-weight: 700; }
 button { min-height: 40px; padding: 8px 16px; border: 1px solid #b9aecb; border-radius: 8px; background: #fff; color: inherit; font: inherit; cursor: pointer; }
 button:focus-visible, summary:focus-visible, input:focus-visible { outline: 3px solid #1a5fb4; outline-offset: 3px; }
 #shopify-section-cart-drawer { position: fixed; inset: 0 0 0 auto; z-index: 100; width: min(420px, 100vw); padding: 24px; overflow: auto; background: #fff; box-shadow: -8px 0 36px #25212c22; transform: translateX(110%); transition: transform 260ms ease; }

@@ -1,0 +1,108 @@
+openapi: 3.1.0
+info:
+  title: Janice HTTP endpoints
+  version: 0.1.0-draft
+  summary: Plain HTTPS endpoints that sit outside the AppSync GraphQL API.
+  description: |
+    Draft for discussion, not deployed. Janice's client-facing API is AWS AppSync
+    GraphQL, described by schema.graphql in janice-backend. This file covers the
+    HTTPS endpoints that receive events from other services and hand them to a queue.
+servers:
+  - url: https://{apiId}.execute-api.{region}.amazonaws.com
+    description: API Gateway HTTP API (planned)
+    variables:
+      apiId:
+        default: replace-me
+        description: The HTTP API's ID once it is deployed.
+      region:
+        default: us-west-1
+        description: The region in the backend baseline.
+tags:
+  - name: Webhooks
+    description: Inbound events from other services.
+paths:
+  /webhooks/gmail:
+    post:
+      tags: [Webhooks]
+      operationId: receiveGmailNotification
+      summary: Receive a Gmail push notification
+      description: |
+        Google Cloud Pub/Sub sends this request when a watched Gmail mailbox changes.
+        The handler checks the push token, decodes message.data, puts
+        { emailAddress, historyId } on the Gmail ingestion queue (SQS) and answers
+        at once. It never calls Gmail itself: a worker reads the mailbox history
+        after emailAccount.historyId and records each message as an ingestionRecord.
+        Pub/Sub retries every response that is not a success, so a notification that
+        cannot be used (unknown mailbox, unreadable data) is logged and answered 204.
+      security:
+        - pubsubPushToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PubSubPushEnvelope'
+            example:
+              message:
+                data: eyJlbWFpbEFkZHJlc3MiOiJzaG9wcGVyQGV4YW1wbGUuY29tIiwiaGlzdG9yeUlkIjoiOTg3NjU0MyJ9
+                messageId: '2070443601311540'
+                publishTime: '2026-10-24T18:02:11.123Z'
+              subscription: projects/janice-example/subscriptions/gmail-push
+      responses:
+        '204':
+          description: Queued, or logged and dropped because it cannot be used.
+        '401':
+          description: The push token is missing or invalid. Pub/Sub keeps retrying, so fix the subscription's settings.
+        '503':
+          description: Not queued. Pub/Sub retries with backoff.
+components:
+  securitySchemes:
+    pubsubPushToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Pub/Sub adds a Google-signed OIDC token to each push request when the
+        subscription has a service account. Verify its signature against Google's
+        keys, its audience (the value set on the subscription) and the service
+        account email.
+  schemas:
+    PubSubPushEnvelope:
+      type: object
+      required: [message, subscription]
+      properties:
+        message:
+          type: object
+          required: [data, messageId]
+          properties:
+            data:
+              type: string
+              contentEncoding: base64
+              description: Base64-encoded JSON of a GmailNotification.
+            messageId:
+              type: string
+            publishTime:
+              type: string
+              format: date-time
+            attributes:
+              type: object
+              additionalProperties:
+                type: string
+        subscription:
+          type: string
+          description: The Pub/Sub subscription that sent the push.
+    GmailNotification:
+      type: object
+      description: What message.data decodes to.
+      required: [emailAddress, historyId]
+      properties:
+        emailAddress:
+          type: string
+          format: email
+          description: The mailbox that changed. Matches emailAccount.normalizedEmail.
+        historyId:
+          type: [string, integer]
+          description: The mailbox's new history ID. The worker reads history after emailAccount.historyId, then stores this value.
+      example:
+        emailAddress: shopper@example.com
+        historyId: '9876543'

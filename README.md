@@ -5,8 +5,10 @@ A Chrome extension (Manifest V3) that tries coupon codes on the real **Sharper I
 
 This first version supports one store (Sharper Image, United States), the locally bundled candidate
 `AFF15` (“$15 off when you spend $150 or more”, as supplied), and additional codes you enter yourself.
-It is an unpacked extension for local testing.
+It is an unpacked extension for local testing. It uses a light theme only (white, grays and one blue accent), even
+when your system is set to dark.
 What was verified on the live checkout, and what was not, is in [docs/TEST_REPORT.md](docs/TEST_REPORT.md).
+How the extension fits with the web dashboard and the backend is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Build it and load it in Chrome
 
@@ -131,14 +133,19 @@ Janice never fills contact, delivery or payment details and never presses **Pay 
 
 ### Tips on product pages
 
-On a Sharper Image product page, the Janice button's card shows **tips** about that product, laid out like
-Honey's tips panel:
+On a Sharper Image product page, the Janice button's card shows **tips** about that product. That includes a
+product opened from the home page or a collection, whose address has `/collections/…/products/…`. The card is
+laid out like Honey's tips panel:
 - **The product:** name, picture and store, read from the page's own product data, with **Save**.
 - **Price note:** a short note on the price.
 - **Potential savings:** how many coupons Janice has for the store, with **Go to checkout**.
 - **Price trend:** a chart of the last 30 days with **See price history**, and **Watch for price drops**.
-- **Rate this tip.**
 - **The gear:** Hide on this page, Snooze for 24 hours, Snooze on this site, Go to settings (see above).
+
+The whole card always shows, with no scrollbar. It opens above the Janice button, below it when the button sits
+near the top, or beside it when neither has room. In a window too short for the card, the tips take two columns.
+Only a window too short even for that scrolls the card instead of shrinking its text: a page zoomed far in, or a
+price history with several prices opened in a very short window.
 
 Everything here stays on your device:
 - **Price trend:** built from the prices Janice saw when you opened Sharper Image product pages in this Chrome.
@@ -146,7 +153,7 @@ Everything here stays on your device:
 - **Watch for price drops:** Janice compares the price when you come back to the page. It doesn't check
   prices in the background or send alerts.
 - **Rewards:** shown as "Not available yet"; Janice has no rewards or cashback program.
-- **Save and ratings:** kept only on this device; nothing is sent anywhere.
+- **Save:** kept only on this device; nothing is sent anywhere.
 - **Settings page:** turn off **Remember prices of products I view**, or **Clear price history**.
 
 ### What a run does
@@ -176,8 +183,7 @@ the existing two-minute run limit; slower store responses may stop a batch befor
   needs them. `storage`: the latest run state per tab, in session storage, cleared when the browser closes. In
   local storage: where you moved the page button and any snooze (an end time, and the stores you snoozed it on),
   and for tips, the prices of Sharper Image products you viewed (one per day, up to 90 days and 200 products),
-  plus your saved items, watched prices and tip ratings. The settings page turns off price remembering and
-  clears it.
+  plus your saved items and watched prices. The settings page turns off price remembering and clears it.
 - No access beyond the listed sites, no remote code, no account or backend. The drawer adapter reads the
   store's same-origin `/cart.js` to verify currency, totals, applied codes and cart identity. Coupon retrieval
   remains local. Cart notes, tokens, customer attributes and payment details are not retained.
@@ -247,7 +253,7 @@ tests/                      unit, fixture, build and package tests; e2e/ drives 
 scripts/                    build and automatic reload, live check, fixture server, zip packaging, data sync,
                             icon generator
 dist/                       zips from npm run package (not committed)
-docs/                       product plan, acceptance checklist, checkout notes, test report, evidence
+docs/                       product plan, architecture, OpenAPI draft, acceptance checklist, checkout notes, test report, evidence
 ```
 
 ## Limitations

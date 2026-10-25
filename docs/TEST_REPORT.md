@@ -124,7 +124,7 @@ results come from the real U.S. Sharper Image cart drawer or checkout, with the 
   Manifest V3 extension guidance and current web-platform guidance. Changes:
   - the popup and panel progress bars are native progress bars, labeled and announcing the code being tried;
   - the popup declares its light and dark themes before it draws, and the panel and page-button card theme
-    their scrollbars;
+    their scrollbars (since replaced by a light theme only, below);
   - under reduced motion, spinners and the moving bar slow down instead of stopping;
   - the background and page scripts use async/await, and every event listener handles its errors.
 
@@ -144,12 +144,14 @@ results come from the real U.S. Sharper Image cart drawer or checkout, with the 
   - the product, read from the page's schema.org Product data, with Save;
   - the coupon count and Go to checkout;
   - a 30-day price trend with a hover and keyboard readout and a price history table, and Watch for price
-    drops;
-  - Rate this tip.
+    drops.
 
-  Prices, saves, watches and ratings stay in local storage. Rewards show as not available, and there are no
+  Prices, saves and watches stay in local storage. Rewards show as not available, and there are no
   background price checks. Checked in unit tests and in Chrome for Testing 153 on a Demo product page served
-  in place of sharperimage.com, in light and dark.
+  in place of sharperimage.com, in light and dark. A product opened inside a collection
+  (`/collections/<collection>/products/<handle>`, as most of the store's links open products) gets tips too, as
+  the same product. Before this fix (2026-10-24), those pages showed the coupon card instead. The browser test
+  now opens the product that way.
 - **Gear menu and settings page (2026-10-24, at the owner's request):** the gear in the card's header opens a
   menu: Hide on this page, Snooze for 24 hours, Snooze on this site and Go to settings. Go to settings opens
   Janice's settings page in a tab, where the snoozes can be ended and price remembering turned off or cleared.
@@ -162,8 +164,43 @@ results come from the real U.S. Sharper Image cart drawer or checkout, with the 
   `/products/smartphone-photo-printer-by-sharper-image`, the tips card showed the product, $189.99, "First
   price seen" and 1 coupon, and kept that day's price. The gear menu opened under the gear, Escape closed it
   alone with focus back on the gear, and Snooze on this site hid the button, also after a reload, until the
-  snooze was cleared in storage. Nothing on the store was clicked or changed.
-- **Fixture (Demo):** the latest full runs passed **178 unit/fixture tests and 25 browser tests**, including
+  snooze was cleared in storage. Nothing on the store was clicked or changed. Later the same day, with the
+  collection fix and the built extension, on `/collections/fall-essentials/products/weighted-heated-throw`, the
+  card showed tips: the product, $169.99, 1 coupon, Save, Watch for price drops, Rate this tip (since removed)
+  and the gear menu. Save kept the product under its `/products/` address. To see how the store opens products, one product
+  link on the home page was followed with a scripted click. Otherwise only Janice's own controls were used.
+- **Light theme only (2026-10-24, at the owner's request):** every Janice surface is white and gray with one blue
+  accent, `#2557d6`, also when the system is set to dark. The surfaces are the popup, the page button and its card
+  (tips and the gear menu included), the checkout panel, the Use code control and the settings page. The dark
+  theme, the purple gradients and the purple toolbar icon are gone; the logo and the cart-field rainbow keep their
+  colors. Each surface declares `color-scheme: only light`. Contrast on white:
+  - text 15.6:1, muted text 6.3:1, and the blue 6.2:1 (also as white text on blue buttons);
+  - control borders 3.6:1 (3.3:1 on the gray surface).
+
+  Checked by a unit test that allows only the palette's colors, and in Chrome for Testing 153 with a dark system
+  setting: the page button, its card, the popup and the settings page stay light. Screenshots of every screen were
+  checked by eye, including the real product page (read-only).
+- **The whole card, no rating (2026-10-24, at the owner's request):** Rate this tip is gone from the tips; ratings
+  kept by the earlier version are deleted when the extension is installed or updated. The card always shows whole,
+  without scrolling, and never covers the button:
+  - above the button when it fits there, below it when the button sits high up, otherwise beside it, slid along
+    the edge to stay in the window;
+  - in a window too short for one column, the tips take two columns (700px wide);
+  - it is placed again when what it shows changes size (the coupons arriving, the price history opened) and when
+    the window is resized.
+
+  The tips card is now 585px tall on the Demo page (690px before): the rating row is gone, the spacing is a little
+  tighter and the fine print is one line shorter. In two columns it is 387px. Checked in Chrome for Testing 153 at
+  1280 × 900, 700 and 560 and at 700 × 560, with the button at its default spot, at the top and in the middle; in
+  a window resized while the card is open; with the price history open; and for the coupon card. Only a window
+  too short even for two columns scrolls the card rather than shrinking its text. That is under about 400px, or
+  under about 580px with three prices in an opened price history.
+- **Live (read-only, 2026-10-24, the whole card):** with the built extension in a fresh profile, on
+  `/collections/fall-essentials/products/weighted-heated-throw`, the tips card showed whole with no rating and no
+  scrolling: above the button at 1280 × 900 (597px tall), beside it at 1280 × 700, and in two columns at
+  1280 × 560. Only Janice's tab was hovered. The page showed $132.59 "WITH CODE: SPOOKY" next to a $169.99
+  comparison value; the card showed $169.99, the price in the page's product data.
+- **Fixture (Demo):** the latest full runs passed **179 unit/fixture tests and 27 browser tests**, including
   native drawer Apply/Remove, serial invalid/valid attempts, winner reapplication and both typing/pending Stop.
   Every row of the ACCEPTANCE.md fixture table remains covered. An earlier batch-overlay browser test failed
   once, then passed on its own and in three later runs.
@@ -173,11 +210,12 @@ results come from the real U.S. Sharper Image cart drawer or checkout, with the 
 
 ## Automated checks (fixture — not live evidence)
 
-Latest complete runs on October 24: `npm test` **178 passing** (Node test runner + jsdom),
-`npm run test:e2e` **25 passing** (the built extension in Chrome for Testing 153, development reload, and UI
+Latest complete runs on October 24: `npm test` **179 passing** (Node test runner + jsdom),
+`npm run test:e2e` **27 passing** (the built extension in Chrome for Testing 153, development reload, and UI
 preview). Browser checks include seven drawer scenarios, two animated-outline/radius scenarios, shopper
 batches, popup retry restoration, top-layer rendering, dynamic controls, a 64-character code at 390 px, tips
-on a product page, and the gear menu with the settings page.
+on a product page, the gear menu with the settings page, the light theme under a dark system setting, and the
+card showing whole at four window sizes.
 These deterministic runs simulate store responses and do not establish live coupon validity.
 
 After the final feedback-spacing and draft-error handling adjustments, `npm test` passed **177/177** again,
@@ -201,8 +239,10 @@ earlier complete browser run was **23/23**; the final layout changes were verifi
 | Decision paths | Best of several kept and re-applied, winner re-apply refused, winner vanishing before the final check, codes changed by someone else (including pending apply/remove and restoration), other checkout page, run deadline, Stop before anything, busy checkout, basis change, improvement not holding | `tests/run-controller-paths.test.js` |
 | Content entry and popup | Detection only reads, one run per page, Demo panel with progress, Stop and the savings figure, Stop relay; popup states (ready, running with a native progress bar that announces the code being tried, result, unsupported, store page, other sites, unreadable pages), coupon cards with the advertised offer and what happened to each code, Copy | `tests/content-and-popup.test.js` |
 | Page button | The manifest's page-button scripts: a tab only on Sharper Image pages, once per page, that asks nothing until hovered or clicked; its card counts the coupons, links to the checkout on store pages and offers Try coupons at checkout; unsupported checkouts, no coupons, provider errors and failed reads explained without a Try button; refused starts, Escape, outside clicks, Close, Copy. With main.js on the Demo checkout: Try coupons from the card runs, the button steps aside for the panel and shows the result after Close. Moving it: a drag slides it along the right edge only after a few pixels (a press alone stays a click), and the click that ends a drag doesn't open the card. It stays inside the window; the arrow keys move it 15px; the spot is kept, applied before the button shows, and followed in other tabs; the card opens below when the button is high up. In Chromium: a real mouse drag, the spot after a reload, the keys, the card below | `tests/launcher.test.js`, `tests/launcher-drag.test.js`, `tests/e2e/launcher-drag.test.js` |
-| Tips | The product from the page's schema.org Product (og fallback, https images only), none off product pages or without a price; one price per day kept for 90 days and 200 products, none when turned off; the view's trend note, summary, chart points, keyboard readout and history table; Save, Watch (and the drop since watching), Rate; the card in tips mode on a product page with the coupon count and today's price kept. In Chromium on a Demo product page: product, coupons, trend from seeded prices, the image, the card inside the window, Watch kept across a reload | `tests/tips.test.js`, `tests/e2e/tips.test.js` |
+| Tips | The product from the page's schema.org Product (og fallback, https images only), also inside a collection as the same product, none off product pages (a collection included) or without a price; one price per day kept for 90 days and 200 products, none when turned off; the view's trend note, summary, chart points, keyboard readout and history table; Save and Watch (and the drop since watching), and no rating; the card in tips mode on a product page with the coupon count and today's price kept. In Chromium on a Demo product page opened inside a collection: product, coupons, trend from seeded prices, the image, the card inside the window, Watch kept across a reload | `tests/tips.test.js`, `tests/e2e/tips.test.js` |
 | Gear menu, snooze and settings | The gear opens an auto popover of four plain buttons on every page with the button. Hide on this page keeps nothing and the next page shows the button; Snooze for 24 hours hides it on every store and in other tabs, keeps no tips price while it lasts, and ends after 24 hours; Snooze on this site hides it on the store until turned back on; Go to settings asks the service worker, which opens the settings page; a snoozed button also hides the drawer's Use code control and asks nothing; turning a snooze off brings open pages back. Opening the menu pins the card; Escape closes the menu, not the card; closing hands focus back to the gear; without anchor positioning the menu is placed under the gear by hand. The settings page shows and ends each snooze, and turns price remembering off or clears it; the popup says when the button is snoozed on its store, with Show it again, and its gear opens the settings. In Chromium: the menu under the gear and inside the window, Escape and focus, the settings tab, the store snooze across a reload and back from the settings page, Hide on this page until a reload | `tests/launcher-menu.test.js`, `tests/options.test.js`, `tests/content-and-popup.test.js`, `tests/service-worker-batch.test.js`, `tests/e2e/launcher-menu.test.js` |
+| The whole card | Above or below the tab, with room for the store tile on the coupon card, and back above when the button moves down (jsdom has no layout). In Chromium on a Demo product page: inside the window, nothing scrolling and the tab clear, above, below or beside the tab and in one or two columns at 1280 × 900, 700 and 560 and 700 × 560 with the button at three spots; with the price history open; after the window is resized; and the coupon card in a short window. No rating in any of them | `tests/launcher-drag.test.js`, `tests/e2e/card-fit.test.js` |
+| Light theme only | No dark theme anywhere; the popup, settings page, panel and page button declare `color-scheme: only light`; every color in their styles is the palette's white, a gray or the blue accent (the logo and the cart-field rainbow excepted), and shadows use the text color. In Chromium with a dark system setting: the page button's tab, card and gear menu, the tips' price and buttons, the popup and the settings page keep their light colors | `tests/package.test.js`, `tests/e2e/light-theme.test.js` |
 | Package | MV3, `activeTab`/`scripting`/`storage`, a settings page opened in a tab, scoped Sharper Image host access and separate read-only `shop.app` recognition; unverified Shopify recognition never enables testing. Every loaded file is present; executable logic is bundled, with no remote code/eval. The drawer permits only the exact same-origin read-only `/cart.js` request; provider data stays local. `npm run package` zips exactly the extension reproducibly, with `manifest.json` at the root; build copies files byte for byte, removes stale build files safely and preserves other folders; development reload is removed by a plain build | `tests/package.test.js` |
 | Automatic reload | The reload channel turns away web pages, sends extension pages the current build at once, each new build, keep-alive pings and the final switch, over a real WebSocket handshake | `tests/reload-server.test.js` |
 | Automatic reload (browser) | The development build in Chromium connects to the channel; a newer build reloads Janice and the open Demo checkout, whose page button then runs the changed script; the final switch leaves the plain build running | `tests/e2e/dev-reload.test.js` |

@@ -218,5 +218,7 @@ chrome.tabs.onRemoved.addListener(async tabId => {
 })
 
 chrome.runtime.onInstalled.addListener(() => {
-  void chrome.action.setBadgeBackgroundColor({ color: '#5b2c91' })
+  void chrome.action.setBadgeBackgroundColor({ color: '#2557d6' })
+  // Rate this tip is gone from the tips (owner request, 2026-10-24), so the ratings it kept are dropped too.
+  void chrome.storage.local.remove('tips:ratings').catch(() => {})
 })

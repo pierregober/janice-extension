@@ -9,6 +9,7 @@ This repository is for a Chrome extension that tries coupon codes at checkout. T
 3. `docs/ACCEPTANCE.md` — tests and completion evidence.
 4. `docs/CHECKOUT_NOTES.md` — actual checkout research status and worksheet.
 5. `data/mock-coupons.json` — user-provided candidate coupon data.
+6. `docs/ARCHITECTURE.md` — how the whole Janice system fits together (web dashboard, AppSync GraphQL backend, background workers and this extension), what is built versus planned, and the API contracts. `docs/openapi.yaml` drafts the HTTP endpoints.
 
 Treat the user's current instructions as authoritative. Keep the plan and checkout notes updated when requirements or verified findings change.
 

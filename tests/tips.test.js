@@ -46,8 +46,14 @@ test('tips: the product comes from the page’s schema.org Product, with og tags
   const ogOnly = page(URL, '<meta property="og:title" content="Quadra"><meta property="og:price:amount" content="419.99"><meta property="og:price:currency" content="USD"><meta property="og:image" content="javascript:alert(1)">')
   assert.deepEqual(plain(readProduct(ogOnly.document, ogOnly.location)), { ...QUADRA, title: 'Quadra', image: null }, 'only https images are used')
 
+  // Most of the store's own links open a product inside a collection: the same product, the same key and address.
+  const inCollection = page('https://sharperimage.com/collections/fall-essentials/products/ionic-comfort-quadra-air-purifier?variant=1')
+  assert.deepEqual(plain(readProduct(inCollection.document, inCollection.location)), QUADRA)
+
   const home = page('https://sharperimage.com/')
   assert.equal(readProduct(home.document, home.location), null, 'not a product page')
+  const collection = page('https://sharperimage.com/collections/fall-essentials')
+  assert.equal(readProduct(collection.document, collection.location), null, 'a collection is not a product page')
   const noPrice = page(URL, '<meta property="og:title" content="Quadra">')
   assert.equal(readProduct(noPrice.document, noPrice.location), null, 'no price, no tips')
 })
@@ -72,7 +78,7 @@ test('tips: one price per day is kept on this device, for 90 days and 200 produc
   assert.equal(off.stored[KEYS.prices], undefined)
 })
 
-test('tips view: the trend from the prices Janice saw, the coupon count, and Save, Watch and Rate on this device', async () => {
+test('tips view: the trend from the prices Janice saw, the coupon count, and Save and Watch on this device; no rating', async () => {
   const window = page()
   const storage = memoryStorage({ [KEYS.prices]: { [QUADRA.key]: [{ day: '2026-10-01', priceMinor: 44999, currency: 'USD' }, { day: '2026-10-12', priceMinor: 42999, currency: 'USD' }] } })
   const view = createTipsView({ window, storage, product: QUADRA, storeName: 'Sharper Image', checkoutUrl: 'https://sharperimage.com/checkout', now: () => NOW })
@@ -117,11 +123,11 @@ test('tips view: the trend from the prices Janice saw, the coupon count, and Sav
   assert.equal(text('.watch-label'), 'Watching for price drops')
   assert.equal(text('.watch-note'), 'Since Oct 24 at $419.99. Janice compares when you visit this page.')
 
-  $('.rate-up').click()
-  await waitUntil(() => $('.rate-up').getAttribute('aria-pressed') === 'true')
-  assert.equal(storage.stored[KEYS.ratings][QUADRA.key], 'up')
-  assert.equal($('.rate-up').getAttribute('aria-pressed'), 'true')
-  assert.equal(text('.rate-thanks'), 'Thanks for the feedback.')
+  // Rate this tip was removed (owner request, 2026-10-24): nothing asks for a rating, and none is kept.
+  assert.doesNotMatch($('.tips').textContent, /rate|helpful/i)
+  assert.equal(view.element.querySelectorAll('button').length, 3, 'Save, See price history and Watch for price drops')
+  assert.equal(KEYS.ratings, undefined)
+  assert.deepEqual(Object.keys(storage.stored).sort(), [KEYS.prices, KEYS.saved, KEYS.watch].sort())
 })
 
 test('tips view: a lower price than when watching started says so first', async () => {

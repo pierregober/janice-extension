@@ -159,7 +159,6 @@
       body { margin: 0; min-height: 100vh; background: #f6f6f7; }
       .page { display: grid; gap: 12px; padding: 20px; }
       .page span { height: 12px; border-radius: 6px; background: #e2e2e6; }
-      @media (prefers-color-scheme: dark) { body { background: #202024; } .page span { background: #34343a; } }
     </style></head>
     <body>
       <div class="page" aria-hidden="true"><span style="width: 55%"></span><span style="width: 80%"></span><span style="width: 40%"></span></div>

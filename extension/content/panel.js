@@ -14,13 +14,15 @@
     * { box-sizing: border-box; }
     p { margin: 0; }
     .panel {
-      --brand: #5b2c91; --brand-2: #7b46c7; --brand-text: #5b2c91;
-      --bg: #ffffff; --surface: #f5f2f9; --surface-2: #e9e2f2;
-      --text: #1d1b20; --muted: #5c5766; --line: #e1d9eb; --line-strong: #b9aecb;
-      --success: #0b7a3b; --success-bg: #e5f4ea; --warning: #8a4600; --warning-bg: #fcefdf;
-      --error: #b3261e; --error-bg: #fbe9e7; --focus: #1a5fb4;
-      /* Scrollbars follow the theme, as the colors below do. */
-      color-scheme: light dark;
+      /* Light theme only, whatever the system's setting: white, grays and one blue accent (owner request,
+         2026-10-24). Success uses the blue; warnings and errors are told by their words and icons. */
+      --accent: #2557d6; --accent-soft: #eef2fd;
+      --bg: #ffffff; --surface: #f5f6f8; --surface-2: #eceef2;
+      --text: #1c252c; --muted: #596071; --line: #dfe1e6; --line-strong: #80879a;
+      --success: var(--accent); --success-bg: var(--accent-soft); --warning: var(--text); --warning-bg: var(--surface);
+      --error: var(--text); --error-bg: var(--surface); --focus: var(--accent);
+      /* Light, scrollbars included, even when the system is set to dark. */
+      color-scheme: only light;
       width: min(340px, calc(100vw - 32px));
       max-height: calc(100vh - 32px);
       overflow: auto;
@@ -28,26 +30,26 @@
       border-radius: 16px;
       background: var(--bg);
       color: var(--text);
-      box-shadow: 0 12px 32px rgba(29, 27, 32, 0.22), 0 2px 6px rgba(29, 27, 32, 0.12);
+      box-shadow: 0 12px 32px rgba(28, 37, 44, 0.22), 0 2px 6px rgba(28, 37, 44, 0.12);
       font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       animation: rise 0.22s ease-out;
     }
-    .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff; }
+    .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg); color: var(--text); }
     .logo { flex: none; width: 24px; height: 24px; object-fit: contain; }
     h2 { margin: 0; font-size: 14.5px; font-weight: 700; }
     .demo {
       margin-left: auto; padding: 1px 8px;
-      border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 999px; background: rgba(255, 255, 255, 0.16);
+      border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted);
       font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     }
     .body { display: grid; gap: 10px; padding: 14px 16px 16px; }
     .working { display: grid; gap: 8px; }
     .working-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
-    .kicker { color: var(--brand-text); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .kicker { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
     .ticket {
       min-width: 0; overflow-wrap: anywhere;
-      padding: 2px 10px; border: 2px dashed var(--brand-text); border-radius: 8px; background: var(--surface);
-      color: var(--brand-text); font: 700 14px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: 0.08em;
+      padding: 2px 10px; border: 2px dashed var(--accent); border-radius: 8px; background: var(--surface);
+      color: var(--accent); font: 700 14px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: 0.08em;
     }
     /* A native <progress>, fully restyled; cqi lets the indeterminate fill move in track widths. */
     .progress {
@@ -56,7 +58,7 @@
       overflow: clip; border: 0 solid; border-radius: 999px; background: var(--surface-2); appearance: none;
     }
     .progress::-webkit-progress-bar { background: transparent; }
-    .progress::-webkit-progress-value { border-radius: 999px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); transition: inline-size 0.4s ease; }
+    .progress::-webkit-progress-value { border-radius: 999px; background: var(--accent); transition: inline-size 0.4s ease; }
     .progress:indeterminate::-webkit-progress-value { animation: slide var(--indeterminate-duration) ease-in-out infinite; }
     .status { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
     /* The finished state is announced here and shown in the result block. */
@@ -72,7 +74,7 @@
     .figure.savings { padding: 8px 20px 6px; border-radius: 14px; background: var(--success-bg); color: var(--success); }
     .figure-amount { font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
     .figure-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-    .figure.symbol { width: 44px; height: 44px; border-radius: 50%; background: var(--surface); color: var(--brand-text); }
+    .figure.symbol { width: 44px; height: 44px; border-radius: 50%; background: var(--surface); color: var(--accent); }
     .figure .icon { width: 24px; height: 24px; }
     .tone-warning .figure.symbol { background: var(--warning-bg); color: var(--warning); }
     .tone-error .figure.symbol { background: var(--error-bg); color: var(--error); }
@@ -98,15 +100,6 @@
       .progress::-webkit-progress-value { transition: none; }
       /* Slower, not stopped, so it still shows that work is going on. */
       .progress { --indeterminate-duration: 10s; }
-    }
-    @media (prefers-color-scheme: dark) {
-      .panel {
-        --brand: #6d3bb0; --brand-2: #8a55d1; --brand-text: #c9a8f5;
-        --bg: #1b1920; --surface: #26232d; --surface-2: #353040;
-        --text: #f4f1f8; --muted: #c3bccf; --line: #3a3544; --line-strong: #5d566a;
-        --success: #7fd69a; --success-bg: #173322; --warning: #f2b56b; --warning-bg: #3a2a16;
-        --error: #f28b82; --error-bg: #3b1d1b; --focus: #8ab4f8;
-      }
     }
   `
 

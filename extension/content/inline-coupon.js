@@ -15,11 +15,11 @@
       all: initial; position: fixed; inset: 0; width: 100vw; height: 100dvh;
       max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
       background: transparent; overflow: visible; pointer-events: none;
-      z-index: 2147483647; color-scheme: light;
-      /* Rainbow stops from the usejanice.com hero form. */
+      z-index: 2147483647;
+      /* Rainbow stops from the usejanice.com hero form; the rest is Janice's light theme (white, grays, blue). */
       --janice-spectrum: conic-gradient(from 0deg, #ff4d6db3, #ff9f1cb3, #ffe53bb3, #45e87bb3, #22c7ffb3, #7868ffb3, #ff52c8b3, #ff4d6db3);
       font: 12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
-      color: #24212b;
+      color: #1c252c;
     }
     :host([hidden]) { display: none !important; }
     *, *::before, *::after { box-sizing: border-box; }
@@ -50,19 +50,19 @@
     .use-code {
       position: fixed; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
       min-height: 28px; max-width: calc(100vw - 16px); margin: 0; padding: 4px 10px;
-      border: 1px solid #ded9e7; border-radius: 999px;
-      background: #fff; color: #24212b; box-shadow: 0 1px 3px #24212b12;
+      border: 1px solid #80879a; border-radius: 999px;
+      background: #fff; color: #1c252c; box-shadow: 0 1px 3px #1c252c14; color-scheme: only light;
       font: inherit; font-weight: 650; line-height: 18px; white-space: nowrap;
       pointer-events: auto; cursor: pointer;
     }
     .use-code::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--janice-spectrum); }
-    .use-code:hover { background: #f7f5fa; border-color: #b7abc9; }
+    .use-code:hover { background: #f5f6f8; border-color: #596071; }
     .use-code:disabled { cursor: wait; opacity: 0.72; }
-    .use-code:focus-visible { outline: 2px solid #6544a6; outline-offset: 3px; }
+    .use-code:focus-visible { outline: 2px solid #2557d6; outline-offset: 3px; }
     .coupon-status {
       position: fixed; max-width: min(260px, calc(100vw - 16px)); margin: 0;
-      padding: 5px 8px; border: 1px solid #e6e1eb; border-radius: 6px;
-      background: #fff; color: #524b5e; font: inherit; font-size: 11px;
+      padding: 5px 8px; border: 1px solid #dfe1e6; border-radius: 6px;
+      background: #fff; color: #596071; font: inherit; font-size: 11px; color-scheme: only light;
       overflow-wrap: anywhere; pointer-events: none;
     }
     .instruction { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }

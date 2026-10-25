@@ -118,11 +118,13 @@ test('page button: the arrow keys move it too; a kept spot is applied before it 
   const hint = page.host.shadowRoot.getElementById($('.tab').getAttribute('aria-describedby'))
   assert.equal(hint.textContent, 'Drag it, or use the up and down arrow keys, to move it along the edge of the window.')
 
-  // High up, the card opens below the tab, in the room left there.
+  // High up, the card opens below the tab, leaving room for its store tile. jsdom lays nothing out, so the card
+  // has no height here; tests/e2e/card-fit.test.js checks in Chromium that it always shows whole.
   $('.tab').click()
   assert.equal(page.isOpen(), true)
-  assert.equal($('.card').hasAttribute('data-below'), true)
-  assert.equal($('.card').style.getPropertyValue('--room'), `${WINDOW - (8 + TAB) - 34 - 8}px`)
+  assert.equal($('.card').dataset.side, 'below')
+  assert.equal($('.card').style.getPropertyValue('--tile'), '28px')
+  assert.equal($('.card').style.getPropertyValue('--room'), '', 'not capped')
 
   assert.equal(key('ArrowDown'), false, 'the key is handled')
   assert.equal(top(), 23)
@@ -136,5 +138,5 @@ test('page button: the arrow keys move it too; a kept spot is applied before it 
   // Moved to the bottom in another tab: this one follows, and its card goes back above the tab.
   for (const listener of page.listeners) listener({ [KEY]: { newValue: { share: 1 } } }, 'local')
   assert.equal(top(), LOWEST)
-  assert.equal($('.card').hasAttribute('data-below'), false)
+  assert.equal($('.card').dataset.side, 'above')
 })

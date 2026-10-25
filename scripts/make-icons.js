@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Draws the toolbar icons (a white price tag on a purple tile) as PNGs,
+// Draws the toolbar icons (a white price tag on a tile of Janice's blue accent) as PNGs,
 // with no image library: shapes are sampled 4×4 per pixel and encoded
 // with node:zlib.
 const fs = require('node:fs')
 const path = require('node:path')
 const zlib = require('node:zlib')
 
-const PURPLE = [0x5b, 0x2c, 0x91]
+const BLUE = [0x25, 0x57, 0xd6]
 const WHITE = [0xff, 0xff, 0xff]
 const SAMPLES = 4
 const TAG = [
@@ -62,7 +62,7 @@ function draw(size) {
       const offset = (py * size + px) * 4
       const share = tile === 0 ? 0 : tag / tile
       for (let channel = 0; channel < 3; channel++) {
-        pixels[offset + channel] = Math.round(PURPLE[channel] * (1 - share) + WHITE[channel] * share)
+        pixels[offset + channel] = Math.round(BLUE[channel] * (1 - share) + WHITE[channel] * share)
       }
       pixels[offset + 3] = Math.round((255 * tile) / (SAMPLES * SAMPLES))
     }

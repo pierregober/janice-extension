@@ -1,5 +1,6 @@
 // Tips in Chromium on a stand-in for a Sharper Image product page (the Demo
-// fixture in fixtures/product-page, served in place of the real site): the
+// fixture in fixtures/product-page, served in place of the real site), opened
+// inside a collection as most of the store's own links open products: the
 // card shows the product, the coupon count and the price trend from prices
 // kept on this device, and Watch for price drops is kept across a reload.
 const { test } = require('node:test')
@@ -10,7 +11,7 @@ const path = require('node:path')
 const { testCopy, launch } = require('./harness.js')
 
 const FIXTURE = path.join(__dirname, '..', '..', 'fixtures', 'product-page')
-const PRODUCT = 'https://sharperimage.com/products/ionic-comfort-quadra-air-purifier'
+const PRODUCT = 'https://sharperimage.com/collections/fall-essentials/products/ionic-comfort-quadra-air-purifier'
 const daysAgo = offset => {
   const date = new Date()
   date.setDate(date.getDate() - offset)

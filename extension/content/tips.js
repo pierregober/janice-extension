@@ -3,26 +3,32 @@
  * Honey's tips panel but with Janice's own data. The product comes from the
  * page's schema.org Product data (name, image, offers.price and
  * priceCurrency, as observed on sharperimage.com product pages on
- * 2026-10-24), the coupon count from Janice's provider, and the price trend
- * from the prices Janice has seen on this device. Save, Watch for price drops
- * and ratings stay on this device too: there is no account or server, Janice
+ * 2026-10-24). A product's page opens at /products/<handle> or, from most of
+ * the store's own links, inside a collection; both are the same product. The
+ * coupon count comes from Janice's provider, and the price trend
+ * from the prices Janice has seen on this device. Save and Watch for price
+ * drops stay on this device too: there is no account or server, Janice
  * doesn't check prices in the background, and it has no rewards program.
  * Remembering prices can be turned off, and they can be cleared, on Janice's
- * settings page (options/options.js).
+ * settings page (options/options.js). The tips take two columns when the card
+ * is wide, which the page button makes it when one column would be taller
+ * than the window (content/launcher.js).
  */
 ;(function (root) {
   'use strict'
 
   const Janice = root.Janice || (root.Janice = {})
 
-  const KEYS = { prices: 'tips:prices', watch: 'tips:watch', saved: 'tips:saved', ratings: 'tips:ratings', settings: 'tips:settings' }
+  const KEYS = { prices: 'tips:prices', watch: 'tips:watch', saved: 'tips:saved', settings: 'tips:settings' }
   const KEEP_DAYS = 90
   const KEEP_PRODUCTS = 200
   const TREND_DAYS = 30
-  const PRODUCT_PATH = /^\/products\/([^/?#]+)/
+  // /products/<handle>, also after a collection (/collections/<collection>/products/<handle>, observed) or another prefix.
+  const PRODUCT_PATH = /\/products\/([^/]+)\/?$/
 
   const STYLE = `
-    .tips { display: grid; gap: 12px; padding: 2px 16px 14px; text-align: left; }
+    .tips-view { container-type: inline-size; }
+    .tips { display: grid; gap: 10px; padding: 2px 16px 12px; text-align: left; }
     .tips p { margin: 0; }
     .tips .icon { flex: none; width: 18px; height: 18px; }
     .product { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; }
@@ -37,7 +43,7 @@
     .save[aria-pressed="true"] .icon, .watch[aria-pressed="true"] .icon { fill: currentColor; }
     .price-note { color: var(--text); font-size: 13px; line-height: 1.4; }
     .price-note.good { color: var(--success); font-weight: 650; }
-    .box { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+    .box { display: grid; align-content: start; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
     .offers { background: var(--surface); }
     .offer-row { display: grid; grid-template-columns: 1fr 1fr; }
     .offer-cell { display: grid; align-content: start; gap: 4px; padding-right: 10px; }
@@ -59,13 +65,13 @@
     .chart:focus-visible { outline: 3px solid var(--focus); }
     .chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
     .chart .axis { stroke: var(--line-strong); stroke-width: 1; }
-    .chart .series { fill: none; stroke: var(--brand-text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .chart .point { fill: var(--brand-text); stroke: var(--bg); stroke-width: 2; }
+    .chart .series { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .chart .point { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
     .chart .crosshair { stroke: var(--line-strong); stroke-width: 1; }
     .readout {
       position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%);
       display: grid; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px;
-      background: var(--bg); box-shadow: 0 4px 12px rgba(29, 27, 32, 0.16); white-space: nowrap; pointer-events: none;
+      background: var(--bg); box-shadow: 0 4px 12px rgba(28, 37, 44, 0.16); white-space: nowrap; pointer-events: none;
     }
     .readout-value { font-size: 13px; font-weight: 750; }
     .readout-date { color: var(--muted); font-size: 11.5px; }
@@ -77,13 +83,12 @@
     .price-history th:last-child, .price-history td:last-child { text-align: right; }
     .watch { display: flex; align-items: center; justify-content: center; gap: 8px; }
     .watch-note { color: var(--muted); font-size: 12px; text-align: center; }
-    .rate { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; }
-    .rate button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
-    .rate button:hover { background: var(--surface); }
-    .rate button[aria-pressed="true"] { color: var(--brand-text); }
-    .rate button[aria-pressed="true"] .icon { fill: currentColor; }
-    .rate-thanks { margin-left: 4px; }
-    .link:focus-visible, .save:focus-visible, .rate button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    .link:focus-visible, .save:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    /* Wide: the product on top, then the savings and the price trend side by side. */
+    @container (min-width: 600px) {
+      .tips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .product, .price-note { grid-column: 1 / -1; }
+    }
   `
 
   const text = value => (typeof value === 'string' && value.trim() ? value.trim() : null)
@@ -168,12 +173,14 @@
 
   const SVG = 'http://www.w3.org/2000/svg'
 
-  function createTipsView({ window: win = root, storage = null, product, storeName = '', checkoutUrl = null, now = () => Date.now() }) {
+  /** The tips for `product`; onResize is called whenever what they show may change their size. */
+  function createTipsView({ window: win = root, storage = null, product, storeName = '', checkoutUrl = null, now = () => Date.now(), onResize = () => {} }) {
     const doc = win.document
     const { icon } = Janice.icons
     const money = amountMinor => Janice.money.formatAmount(amountMinor, product.currency)
 
     const element = doc.createElement('div')
+    element.className = 'tips-view'
     element.innerHTML = `
       <style>${STYLE}</style>
       <div class="tips">
@@ -198,7 +205,7 @@
             </div>
           </div>
           <a class="tips-go primary" hidden>Go to checkout</a>
-          <p class="offer-fine">Janice tries each coupon at checkout and keeps it only if your total goes down. It never touches payment details or places orders.</p>
+          <p class="offer-fine">Janice keeps a coupon only if your total goes down. It never touches payment details or places orders.</p>
         </section>
         <section class="box trend" aria-labelledby="trend-title">
           <div class="trend-head">
@@ -219,17 +226,11 @@
           <button type="button" class="watch secondary" aria-pressed="false">${icon('bookmark')}<span class="watch-label">Watch for price drops</span></button>
           <p class="watch-note" hidden></p>
         </section>
-        <div class="rate">
-          <span>Rate this tip</span>
-          <button type="button" class="rate-up" aria-pressed="false" aria-label="Helpful tip">${icon('up')}</button>
-          <button type="button" class="rate-down" aria-pressed="false" aria-label="Unhelpful tip">${icon('down')}</button>
-          <span class="rate-thanks" role="status"></span>
-        </div>
       </div>
     `
     const part = selector => element.querySelector(selector)
     // What the view knows: storage as last read, or memory alone without storage.
-    const state = { prices: {}, watch: {}, saved: {}, ratings: {}, settings: {} }
+    const state = { prices: {}, watch: {}, saved: {}, settings: {} }
     let loaded = null
     let couponCount = null
 
@@ -389,10 +390,7 @@
       part('.watch-label').textContent = watched ? 'Watching for price drops' : 'Watch for price drops'
       part('.watch-note').hidden = !watched
       part('.watch-note').textContent = watched ? `Since ${shortDate(watched.day)} at ${money(watched.priceMinor)}. Janice compares when you visit this page.` : ''
-
-      const rating = state.ratings[product.key]
-      part('.rate-up').setAttribute('aria-pressed', String(rating === 'up'))
-      part('.rate-down').setAttribute('aria-pressed', String(rating === 'down'))
+      onResize()
     }
 
     async function ensureLoaded() {
@@ -420,17 +418,8 @@
       table.hidden = !table.hidden
       part('.history-toggle').setAttribute('aria-expanded', String(!table.hidden))
       part('.history-toggle').textContent = table.hidden ? 'See price history' : 'Hide price history'
+      onResize()
     })
-    for (const [selector, value] of [['.rate-up', 'up'], ['.rate-down', 'down']]) {
-      part(selector).addEventListener('click', async () => {
-        const ratings = { ...state.ratings }
-        if (ratings[product.key] === value) delete ratings[product.key]
-        else ratings[product.key] = value
-        await save('ratings', ratings)
-        part('.rate-thanks').textContent = ratings[product.key] ? 'Thanks for the feedback.' : ''
-        render()
-      })
-    }
     return {
       element,
       /** Records today's price on this device, as the page loads. */

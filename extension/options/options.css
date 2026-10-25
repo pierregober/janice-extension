@@ -1,34 +1,18 @@
+/* Light theme only, whatever the system's setting: white, grays and one blue accent (owner request,
+   2026-10-24). */
 :root {
-  color-scheme: light dark;
-  --brand: #5b2c91;
-  --brand-text: #5b2c91;
+  color-scheme: only light;
+  --accent: #2557d6;
   --bg: #ffffff;
-  --page: #f5f2f9;
-  --surface: #f5f2f9;
-  --text: #1d1b20;
-  --muted: #5c5766;
-  --line: #e1d9eb;
-  --line-strong: #b9aecb;
-  --success: #0b7a3b;
-  --focus: #1a5fb4;
-  --shadow: 0 1px 2px rgba(29, 27, 32, 0.06), 0 2px 10px rgba(29, 27, 32, 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --brand: #8a55d1;
-    --brand-text: #c9a8f5;
-    --bg: #1b1920;
-    --page: #131217;
-    --surface: #26232d;
-    --text: #f4f1f8;
-    --muted: #c3bccf;
-    --line: #3a3544;
-    --line-strong: #5d566a;
-    --success: #7fd69a;
-    --focus: #8ab4f8;
-    --shadow: none;
-  }
+  --page: #f5f6f8;
+  --surface: #f5f6f8;
+  --text: #1c252c;
+  --muted: #596071;
+  --line: #dfe1e6;
+  --line-strong: #80879a;
+  --success: var(--accent);
+  --focus: var(--accent);
+  --shadow: 0 1px 2px rgba(28, 37, 44, 0.06), 0 2px 10px rgba(28, 37, 44, 0.06);
 }
 
 * {
@@ -168,7 +152,7 @@ input[type="checkbox"][switch] {
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--brand);
+  accent-color: var(--accent);
   cursor: pointer;
 }
 

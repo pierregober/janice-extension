@@ -1,20 +1,11 @@
+/* Janice is light only, so its preview is too. */
 :root {
-  color-scheme: light dark;
-  --bg: #f3f1f6;
+  color-scheme: only light;
+  --bg: #f5f6f8;
   --card: #ffffff;
-  --text: #1d1b20;
-  --muted: #5c5766;
-  --line: #ddd6e6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121015;
-    --card: #1f1c24;
-    --text: #f4f1f8;
-    --muted: #c3bccf;
-    --line: #3a3544;
-  }
+  --text: #1c252c;
+  --muted: #596071;
+  --line: #dfe1e6;
 }
 
 body {

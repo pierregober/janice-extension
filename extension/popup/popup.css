@@ -1,46 +1,25 @@
+/* Light theme only, whatever the system's setting: white, grays and one blue accent (owner request,
+   2026-10-24). Success uses the blue; warnings and errors are told by their words and icons. */
 :root {
-  color-scheme: light dark;
-  --brand: #5b2c91;
-  --brand-2: #7b46c7;
-  --brand-text: #5b2c91;
+  color-scheme: only light;
+  --accent: #2557d6;
+  --accent-hover: #1b46b0;
+  --accent-soft: #eef2fd;
   --bg: #ffffff;
-  --surface: #f5f2f9;
-  --surface-2: #e9e2f2;
-  --text: #1d1b20;
-  --muted: #5c5766;
-  --line: #e1d9eb;
-  --line-strong: #b9aecb;
-  --success: #0b7a3b;
-  --success-bg: #e5f4ea;
-  --warning: #8a4600;
-  --warning-bg: #fcefdf;
-  --error: #b3261e;
-  --error-bg: #fbe9e7;
-  --focus: #1a5fb4;
-  --shadow: 0 1px 2px rgba(29, 27, 32, 0.06), 0 2px 10px rgba(29, 27, 32, 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --brand: #6d3bb0;
-    --brand-2: #8a55d1;
-    --brand-text: #c9a8f5;
-    --bg: #1b1920;
-    --surface: #26232d;
-    --surface-2: #353040;
-    --text: #f4f1f8;
-    --muted: #c3bccf;
-    --line: #3a3544;
-    --line-strong: #5d566a;
-    --success: #7fd69a;
-    --success-bg: #173322;
-    --warning: #f2b56b;
-    --warning-bg: #3a2a16;
-    --error: #f28b82;
-    --error-bg: #3b1d1b;
-    --focus: #8ab4f8;
-    --shadow: none;
-  }
+  --surface: #f5f6f8;
+  --surface-2: #eceef2;
+  --text: #1c252c;
+  --muted: #596071;
+  --line: #dfe1e6;
+  --line-strong: #80879a;
+  --success: var(--accent);
+  --success-bg: var(--accent-soft);
+  --warning: var(--text);
+  --warning-bg: var(--surface);
+  --error: var(--text);
+  --error-bg: var(--surface);
+  --focus: var(--accent);
+  --shadow: 0 1px 2px rgba(28, 37, 44, 0.06), 0 2px 10px rgba(28, 37, 44, 0.06);
 }
 
 * {
@@ -67,8 +46,9 @@ p {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-2));
-  color: #ffffff;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .logo-slot {
@@ -93,9 +73,9 @@ h1 {
 .demo {
   margin-left: auto;
   padding: 2px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  color: var(--muted);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -113,7 +93,7 @@ h1 {
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #ffffff;
+  color: var(--muted);
   cursor: pointer;
 }
 
@@ -122,11 +102,8 @@ h1 {
 }
 
 .settings:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.settings:focus-visible {
-  outline-color: #ffffff;
+  background: var(--surface);
+  color: var(--text);
 }
 
 .settings .icon {
@@ -159,7 +136,7 @@ h1 {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--brand-text);
+  color: var(--accent);
   font: inherit;
   font-weight: 650;
   text-decoration: underline;
@@ -167,7 +144,7 @@ h1 {
 }
 
 .manual-codes { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
-.manual-codes summary { cursor: pointer; color: var(--brand-text); font-weight: 650; }
+.manual-codes summary { cursor: pointer; color: var(--accent); font-weight: 650; }
 .manual-codes label { display: block; margin: 10px 0 5px; font-size: 13px; font-weight: 600; }
 .manual-codes textarea { display: block; width: 100%; min-height: 68px; padding: 8px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
 .codes-help { margin-top: 6px; color: var(--muted); font-size: 12px; }
@@ -192,7 +169,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--bg);
-  color: var(--brand-text);
+  color: var(--text);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -216,7 +193,7 @@ h1 {
   flex: none;
   padding: 3px 9px;
   border-radius: 999px;
-  background: var(--brand);
+  background: var(--accent);
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -245,7 +222,7 @@ h1 {
   height: 48px;
   border-radius: 50%;
   background: var(--surface);
-  color: var(--brand-text);
+  color: var(--accent);
 }
 
 .tone-warning .figure:not(.is-savings) {
@@ -290,7 +267,7 @@ h1 {
 }
 
 .kicker {
-  color: var(--brand-text);
+  color: var(--accent);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -332,7 +309,7 @@ h1 {
 
 .progress::-webkit-progress-value {
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  background: var(--accent);
   transition: inline-size 0.4s ease;
 }
 
@@ -369,10 +346,10 @@ h1 {
   min-width: 0;
   overflow-wrap: anywhere;
   padding: 3px 10px;
-  border: 2px dashed var(--brand-text);
+  border: 2px dashed var(--accent);
   border-radius: 8px;
   background: var(--surface);
-  color: var(--brand-text);
+  color: var(--accent);
   font: 700 14px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   letter-spacing: 0.08em;
 }
@@ -397,7 +374,7 @@ h1 {
 
 .is-trying .coupon-state {
   background: var(--surface-2);
-  color: var(--brand-text);
+  color: var(--accent);
 }
 
 .is-trying .coupon-state::before {
@@ -474,14 +451,13 @@ a {
 .primary {
   min-height: 46px;
   border: 0;
-  background: linear-gradient(135deg, var(--brand), var(--brand-2));
-  box-shadow: 0 2px 8px rgba(91, 44, 145, 0.35);
+  background: var(--accent);
   color: #ffffff;
   font-size: 15px;
 }
 
 .primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: var(--accent-hover);
 }
 
 .secondary {

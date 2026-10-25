@@ -67,6 +67,22 @@ test('every file the extension loads exists', () => {
   for (const file of files) assert.ok(fs.existsSync(extensionFile(file)), `${file} is missing`)
 })
 
+// The owner's call (2026-10-24): Janice is a light theme app, the best for accessibility, in white, grays and one blue
+// accent. The logo (shared/icons.js) and the rainbow around the store's promo field keep their own colors.
+test('light theme only: no dark theme, light declared even when the system is dark, and only white, grays and the blue', () => {
+  const PALETTE = ['#ffffff', '#f5f6f8', '#eceef2', '#dfe1e6', '#80879a', '#596071', '#1c252c', '#2557d6', '#1b46b0', '#eef2fd']
+  const full = hex => (hex.length === 4 ? `#${[...hex.slice(1)].map(digit => digit + digit).join('')}` : hex.slice(0, 7)).toLowerCase()
+  const files = ['popup/popup.css', 'popup/popup.html', 'options/options.css', 'options/options.html', 'content/launcher.js', 'content/tips.js', 'content/panel.js', 'content/inline-coupon.js', 'service-worker.js']
+  for (const file of files) {
+    const source = read(`extension/${file}`).replace(/--janice-spectrum:[^;]+;/, '')
+    assert.doesNotMatch(source, /prefers-color-scheme/, `${file} has no dark theme`)
+    for (const [hex] of source.matchAll(/#[0-9a-f]{3,8}\b/gi)) assert.ok(PALETTE.includes(full(hex)), `${file} uses ${hex}, outside the palette`)
+    for (const [, rgb] of source.matchAll(/rgba\((\d+, \d+, \d+), [\d.]+\)/g)) assert.equal(rgb, '28, 37, 44', `${file}: shadows are the text color's`)
+  }
+  for (const file of ['popup/popup.css', 'options/options.css', 'content/launcher.js', 'content/panel.js']) assert.match(read(`extension/${file}`), /color-scheme: only light;/, file)
+  for (const file of ['popup/popup.html', 'options/options.html']) assert.match(read(`extension/${file}`), /<meta name="color-scheme" content="only light" \/>/, file)
+})
+
 test('all executable code is bundled; only bundled data and the verified store cart are fetched', () => {
   const sources = []
   const walk = directory => {

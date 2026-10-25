@@ -16,13 +16,32 @@ Read-only, from a fresh guest session in Chrome for Testing 153, on
   fallback.
 - **Observed:** `/products/<handle>.js` answers with the product id, the title, and each variant's price in
   cents. Tips don't use it: the page's own data needs no request.
+- **Observed (later on 2026-10-24, fresh guest profile):** most of the store's own product links open the
+  product inside a collection, at `/collections/<collection>/products/<handle>`: 144 of 159 product links on
+  the home page and 66 of 81 on `/collections/all`. One such link from the home page was followed with a
+  scripted click on the link (the store's sign-up dialog covered the page and was left open). It loaded a new
+  document at `/collections/fall-essentials/products/weighted-heated-throw` (navigation type `navigate`). That
+  page declares the same JSON-LD Product (`price` 169.99, `priceCurrency` USD), with `url`, `link[rel=canonical]`
+  and `og:url` all at `/products/weighted-heated-throw`.
 - **Janice's behavior:** tips read the JSON-LD Product (falling back to the og tags) and key prices by the
-  product's handle. They store at most one price per day on this device.
+  product's handle. A product page at `/products/<handle>` and one at `/collections/<collection>/products/<handle>`
+  are the same product. Tips store at most one price per day on this device.
+- **Observed with Janice loaded, product inside a collection (2026-10-24):** before the fix, the button's card
+  on `/collections/fall-essentials/products/weighted-heated-throw` showed the coupon view, not tips. With the
+  fix, in a fresh guest profile with the built extension, the card showed tips: "Weighted Heated Throw", $169.99,
+  "First price seen", 1 coupon, Save, Watch for price drops, Rate this tip (since removed) and the gear menu.
+  Save kept the product under `weighted-heated-throw` at
+  `https://sharperimage.com/products/weighted-heated-throw`. Only Janice's own controls were used.
 - **Observed with Janice loaded (later on 2026-10-24, fresh guest profile, same page):** the tips card showed
   "Smartphone Photo Printer by Sharper Image", $189.99 and 1 coupon, and kept that day's price. The gear menu
   (Hide on this page, Snooze for 24 hours, Snooze on this site, Go to settings) opened under the gear. Snooze on
   this site hid the button, also after a reload, until the snooze was cleared. Only Janice's own controls were
   used; nothing on the store was clicked.
+- **Observed with Janice loaded (later on 2026-10-24, fresh profile, the weighted throw again):** during the
+  store's "Spooktacular Savings" banner (22% off $149, 15% off with no minimum, code SPOOKY), the page showed
+  $132.59 "WITH CODE: SPOOKY", "Save $37.40" and "Comp. Value: $169.99". The card showed $169.99, the price in the
+  page's product data, which Janice reads; SPOOKY is not among Janice's local candidates (AFF15 only). The card
+  showed whole, with no rating, at 1280 × 900, 700 and 560. Only Janice's tab was hovered.
 
 ## The checkout on shop.app (shoppers signed in to Shop)
 

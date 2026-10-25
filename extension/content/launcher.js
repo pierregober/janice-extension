@@ -12,8 +12,9 @@
  * spot on later pages. The gear in the card's header opens a menu: Hide on
  * this page, Snooze for 24 hours (every store), Snooze on this site (until
  * turned back on in the popup or settings, shared/snooze.js) and Go to
- * settings. Like the panel, it lives in a shadow root so the store's styles
- * cannot restyle it.
+ * settings. The card always shows whole, without scrolling: above or below
+ * the tab when it fits there, otherwise beside it (placeCard). Like the panel,
+ * it lives in a shadow root so the store's styles cannot restyle it.
  */
 ;(function (root) {
   'use strict'
@@ -25,10 +26,12 @@
     * { box-sizing: border-box; }
     p, h2, ul { margin: 0; }
     .root {
-      --brand: #5b2c91; --brand-2: #7b46c7; --brand-text: #5b2c91;
-      --bg: #ffffff; --surface: #f5f2f9; --text: #1d1b20; --muted: #5c5766;
-      --line: #e1d9eb; --line-strong: #b9aecb;
-      --success: #0b7a3b; --warning: #8a4600; --error: #b3261e; --focus: #1a5fb4;
+      /* Light theme only, whatever the system's setting: white, grays and one blue accent (owner request,
+         2026-10-24). Success uses the blue; warnings and errors are told by their words and icons. */
+      --accent: #2557d6; --accent-hover: #1b46b0;
+      --bg: #ffffff; --surface: #f5f6f8; --text: #1c252c; --muted: #596071;
+      --line: #dfe1e6; --line-strong: #80879a;
+      --success: var(--accent); --warning: var(--text); --error: var(--text); --focus: var(--accent);
       position: relative;
       display: flex;
       justify-content: flex-end;
@@ -38,9 +41,9 @@
     .tab {
       display: grid; place-items: center;
       width: 50px; height: 48px; margin: 0; padding: 0 2px 0 0;
-      border: 0; border-radius: 14px 0 0 14px;
-      background: linear-gradient(135deg, var(--brand), var(--brand-2));
-      box-shadow: 0 6px 18px rgba(29, 27, 32, 0.28), 0 1px 3px rgba(29, 27, 32, 0.2);
+      border: 1px solid var(--line-strong); border-right: 0; border-radius: 14px 0 0 14px;
+      background: var(--bg);
+      box-shadow: 0 6px 18px rgba(28, 37, 44, 0.18), 0 1px 3px rgba(28, 37, 44, 0.14);
       /* The tab is also the handle that slides the button along the edge. */
       cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none;
       transition: width 0.15s ease;
@@ -49,26 +52,32 @@
     .tab.dragging { cursor: grabbing; }
     .tab .mark { width: 34px; height: 34px; object-fit: contain; }
     .card {
-      /* Scrollbars follow the theme, as the colors do. */
-      color-scheme: light dark;
+      /* Light, scrollbars included, even when the system is set to dark. */
+      color-scheme: only light;
+      /* Above the tab unless placeCard() says otherwise. --room caps it only when it is taller than the whole
+         window, and then its body scrolls. */
       position: absolute; right: 12px; bottom: calc(100% + 14px);
-      /* --room: the space beside the tab, set when the card opens; the body scrolls within it. */
-      display: flex; flex-direction: column; max-height: var(--room, calc(100vh - 186px));
+      display: flex; flex-direction: column; max-height: var(--room, none);
       width: min(360px, calc(100vw - 24px));
       border: 1px solid var(--line); border-radius: 16px;
       background: var(--bg);
-      box-shadow: 0 16px 40px rgba(29, 27, 32, 0.24), 0 2px 8px rgba(29, 27, 32, 0.12);
+      box-shadow: 0 16px 40px rgba(28, 37, 44, 0.24), 0 2px 8px rgba(28, 37, 44, 0.12);
       animation: rise 0.18s ease-out;
     }
-    /* Below the tab when it sits high up, far enough down for the store tile to clear it. */
-    .card[data-below] { top: calc(100% + 34px); bottom: auto; }
+    /* Below the tab when it sits high up, with room for the store tile (--tile) when it shows. */
+    .card[data-side="below"] { top: calc(100% + 14px + var(--tile, 0px)); bottom: auto; }
+    /* Beside the tab, at its widest, and as level with it as the window allows (--top). */
+    .card[data-side="beside"] { top: var(--top, 0px); bottom: auto; right: 66px; width: min(360px, calc(100vw - 74px)); }
+    /* Tips in two columns (content/tips.js), when one column would be taller than the window. */
+    .card[data-wide] { width: min(700px, calc(100vw - 24px)); }
+    .card[data-wide][data-side="beside"] { width: min(700px, calc(100vw - 74px)); }
     .store {
       position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
       display: grid; place-items: center;
       width: 56px; height: 56px;
-      border: 1px solid #e1d9eb; border-radius: 14px;
-      background: #ffffff; color: #1d1b20;
-      box-shadow: 0 4px 12px rgba(29, 27, 32, 0.16);
+      border: 1px solid var(--line); border-radius: 14px;
+      background: var(--bg); color: var(--text);
+      box-shadow: 0 4px 12px rgba(28, 37, 44, 0.16);
       font-size: 18px; font-weight: 800; letter-spacing: 0.02em;
     }
     .head { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 8px 0 12px; }
@@ -90,7 +99,7 @@
       min-width: 224px; padding: 6px;
       border: 1px solid var(--line); border-radius: 12px;
       background: var(--bg); color: var(--text);
-      box-shadow: 0 12px 32px rgba(29, 27, 32, 0.22), 0 2px 6px rgba(29, 27, 32, 0.12);
+      box-shadow: 0 12px 32px rgba(28, 37, 44, 0.22), 0 2px 6px rgba(28, 37, 44, 0.12);
     }
     .menu:popover-open { display: grid; gap: 2px; }
     @supports (position-area: block-end) {
@@ -106,7 +115,7 @@
     .menu-item:hover { background: var(--surface); }
     .menu-item .icon { flex: none; width: 18px; height: 18px; color: var(--muted); }
     /* Tips on product pages (content/tips.js): a "tips" title in the header. */
-    .tips-label { color: var(--brand-text); font-size: 18px; font-weight: 750; letter-spacing: -0.01em; }
+    .tips-label { color: var(--text); font-size: 18px; font-weight: 750; letter-spacing: -0.01em; }
     .tips-slot { min-height: 0; overflow: auto; }
     .body {
       display: grid; gap: 12px;
@@ -126,7 +135,7 @@
     }
     .ticket {
       min-width: 0; overflow-wrap: anywhere;
-      padding: 2px 8px; border: 2px dashed var(--brand-text); border-radius: 8px; color: var(--brand-text);
+      padding: 2px 8px; border: 2px dashed var(--accent); border-radius: 8px; color: var(--accent);
       font: 700 13px/1.3 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: 0.08em;
     }
     .offer { font-size: 13px; line-height: 1.35; }
@@ -143,17 +152,17 @@
     }
     .primary {
       min-height: 46px; padding: 12px 18px; border: 0;
-      background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #ffffff;
-      font-size: 15.5px; line-height: 22px; box-shadow: 0 4px 12px rgba(91, 44, 145, 0.3);
+      background: var(--accent); color: #ffffff;
+      font-size: 15.5px; line-height: 22px;
     }
-    .primary:hover { filter: brightness(1.08); }
+    .primary:hover { background: var(--accent-hover); }
     .secondary { min-height: 40px; padding: 8px 18px; border: 1.5px solid var(--line-strong); background: var(--bg); color: var(--text); font-size: 14.5px; }
     .secondary:hover { background: var(--surface); }
     button:disabled { cursor: default; opacity: 0.6; }
     button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .note { color: var(--warning); font-size: 13px; }
     .manual-codes { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; text-align: left; }
-    .manual-codes summary { cursor: pointer; color: var(--brand-text); font-weight: 650; }
+    .manual-codes summary { cursor: pointer; color: var(--accent); font-weight: 650; }
     .manual-codes label { display: block; margin: 10px 0 5px; font-size: 13px; font-weight: 600; }
     .manual-codes textarea { display: block; width: 100%; min-height: 68px; padding: 8px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
     .codes-help { margin-top: 6px; color: var(--muted); font-size: 12px; }
@@ -162,7 +171,7 @@
     .fine { padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
     .spinner {
       justify-self: center; width: 22px; height: 22px;
-      border: 3px solid var(--surface); border-top-color: var(--brand-2); border-radius: 50%;
+      border: 3px solid var(--surface); border-top-color: var(--accent); border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     .announce { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -173,14 +182,6 @@
       .tab { transition: none; }
       .card { animation: none; }
       .spinner { animation-duration: 2.4s; }
-    }
-    @media (prefers-color-scheme: dark) {
-      .root {
-        --brand: #6d3bb0; --brand-2: #8a55d1; --brand-text: #c9a8f5;
-        --bg: #1b1920; --surface: #26232d; --text: #f4f1f8; --muted: #c3bccf;
-        --line: #3a3544; --line-strong: #5d566a;
-        --success: #7fd69a; --warning: #f2b56b; --error: #f28b82; --focus: #8ab4f8;
-      }
     }
   `
 
@@ -264,6 +265,7 @@
           product,
           storeName: store.name,
           checkoutUrl: Janice.stores.STORES[store.id]?.checkoutUrl ?? null,
+          onResize: () => placeCard(),
         })
       : null
     if (tips) {
@@ -420,6 +422,7 @@
         for (const selector of ['.tips-slot', '.tips-label']) part(selector).hidden = false
         void tips.update({ couponCount: view.isBusy ? null : view.count ?? 0 })
       }
+      placeCard()
     }
 
     async function refresh() {
@@ -444,7 +447,6 @@
       if (isOpen) return render()
       isOpen = true
       note = ''
-      placeCard()
       render()
       return refresh()
     }
@@ -627,6 +629,11 @@
     const SNOOZE = Janice.snooze.KEY
     const MARGIN = 8
     const STEP = 15
+    // The card: its gap to the tab above or below it, how far the store tile stands above its top edge, and the
+    // narrowest window in which the wide tips card beside the tab is wide enough for two columns (content/tips.js).
+    const GAP = 14
+    const TILE = 28
+    const WIDE_WINDOW = 700
     const storage = win.chrome?.storage
     let share = null
     let drag = null
@@ -645,15 +652,45 @@
     }
     const moveToShare = value => moveTo(MARGIN + Math.min(Math.max(value, 0), 1) * travel())
 
-    // The card opens on the side of the tab with more room, above it unless the tab sits high up, and no taller
-    // than that room: the gap, and the store tile over the card's top edge, come off it.
+    // The card shows whole, never scrolled (owner request, 2026-10-24). It opens above the tab, or below it when the
+    // tab sits high up, if it fits there; otherwise beside the tab, slid along the edge to stay in the window. Tips
+    // that would be taller than the window take two columns. Only a card taller than the whole window, as on a page
+    // zoomed far in, is capped and scrolls, rather than shrinking its text.
     function placeCard() {
+      if (!isOpen) return
       const { top, bottom } = tab.getBoundingClientRect()
-      const above = top - 14 - 28 - MARGIN
-      const below = win.innerHeight - bottom - 34 - MARGIN
-      card.toggleAttribute('data-below', below > above)
-      card.style.setProperty('--room', `${Math.max(above, below, 160)}px`)
+      // Room for the store tile over the coupon card's top edge, even before the store is known; tips have none.
+      const tile = tips ? 0 : TILE
+      const whole = win.innerHeight - 2 * MARGIN - tile
+      // Its natural height, uncapped and in one column.
+      card.style.removeProperty('--room')
+      card.removeAttribute('data-wide')
+      card.removeAttribute('data-side')
+      let height = card.offsetHeight
+      if (tips && height > whole && win.innerWidth >= WIDE_WINDOW) {
+        card.setAttribute('data-wide', '')
+        height = card.offsetHeight
+      }
+      const above = top - GAP - tile - MARGIN
+      const below = win.innerHeight - bottom - GAP - tile - MARGIN
+      if (height <= Math.max(above, below)) card.dataset.side = below > above ? 'below' : 'above'
+      else card.dataset.side = 'beside'
+      card.style.setProperty('--tile', `${tile}px`)
+      if (card.dataset.side !== 'beside') return
+      // Beside the tab its width can be smaller in a narrow window, so it is measured again.
+      height = Math.min(card.offsetHeight, whole)
+      if (height === whole) card.style.setProperty('--room', `${whole}px`)
+      const level = Math.min(Math.max((top + bottom - height) / 2, MARGIN + tile), win.innerHeight - MARGIN - height)
+      card.style.setProperty('--top', `${level - top}px`)
     }
+    // The card is placed again whenever it renders (and the tips when they do). Anything else that changes its size,
+    // like a resized codes box, places it on the next frame: outside the observer's callback, so not as a loop.
+    let placing = 0
+    const sizeObserver = win.ResizeObserver
+      ? new win.ResizeObserver(() => {
+          if (isOpen && !placing) placing = win.requestAnimationFrame(() => ((placing = 0), placeCard()))
+        })
+      : null
 
     async function keepPosition() {
       try {
@@ -704,6 +741,7 @@
     }
     const resized = () => {
       if (share !== null) moveToShare(share)
+      else placeCard()
       pageChanged()
     }
 
@@ -769,6 +807,7 @@
       else if (action) void quiet(action)
     })
     part('.try').addEventListener('click', start)
+    part('.manual-codes').addEventListener('toggle', placeCard)
     part('#additional-codes').addEventListener('input', () => {
       isPinned = true
       note = ''
@@ -794,6 +833,7 @@
         win.addEventListener('popstate', pageChanged)
         win.addEventListener('resize', resized)
         storage?.onChanged.addListener(storageChanged)
+        sizeObserver?.observe(card)
         Janice.runViews.add(runUpdated)
         syncWithPanel()
         scanPage()
@@ -811,6 +851,8 @@
         win.removeEventListener('popstate', pageChanged)
         win.removeEventListener('resize', resized)
         storage?.onChanged.removeListener(storageChanged)
+        sizeObserver?.disconnect()
+        if (placing) win.cancelAnimationFrame(placing)
         Janice.runViews.delete(runUpdated)
         win.clearTimeout(closeTimer)
         win.clearTimeout(refreshTimer)
